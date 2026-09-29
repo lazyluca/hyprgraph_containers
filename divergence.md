@@ -123,3 +123,18 @@ Status values:
 - **Why:** gives $f$ as an explicit function, with no choice or quotient (README §4.6).
 - **Effect:** none. This is the paper's argument made explicit.
 - **Status:** Representation.
+
+## D12. Proposition 2.2: proof route
+
+- **Paper (Appendix A):** three proofs: the chain rule for relative entropy with convexity of
+  $i_p$; compression plus Kruskal–Katona; and Kahn–Kalai edge-isoperimetry.
+- **Lean (`prop22`, `Prop22/Proof/Induction.lean`):** induction on $|C|$, splitting on one
+  vertex $v$ into $\mathcal I_0=\{A\in\mathcal I: v\notin A\}$ and
+  $\mathcal I_1=\{B: B\cup\{v\}\in\mathcal I\}\subseteq\mathcal I_0$. The invariant is the
+  unnormalized form $\log(1-p)\,(|C|P - M/p)\le P\log P$, and the step is the one-variable
+  inequality `two_point`. This is the first proof with the chain rule applied one coordinate at a
+  time. The convexity of $i_p$ is replaced by concavity of $\log$.
+- **Why:** it needs only finite sums (D5), with no KL divergence or conditional entropy API.
+- **Effect:** none on statements. `Prop22Statement` is unchanged, and the proof does not use its
+  hypotheses `𝓘 ⊆ C.powerset` and `𝓘.Nonempty` beyond positivity of $P$.
+- **Status:** Representation.

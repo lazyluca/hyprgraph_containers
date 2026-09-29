@@ -2,6 +2,7 @@ import CamposSamotij.Statement
 import CamposSamotij.Section4.Lemma41
 import CamposSamotij.Section4.Lemma42
 import CamposSamotij.Section4.Lemma43
+import CamposSamotij.Prop22.Proof.Induction
 
 /-!
 # Theorem B (M8)
@@ -22,6 +23,7 @@ conditional on `hProp22 : Prop22Statement`. See README §4.6.
   and on `S` pass through the same states, since at every round `vᵢ ∈ I ↔ vᵢ ∈ S`.
 * `containerOf_fingerprint`: hence `f(g(I)) = C(I)`, the container output on `I`.
 * `theoremB`: (a) from Lemma 4.1, (b) from Lemma 4.2, (c) from Lemma 4.3.
+* `theoremB_unconditional`: `theoremB` with the hypothesis discharged by `prop22` (M9).
 -/
 
 namespace CamposSamotij
@@ -107,5 +109,9 @@ theorem theoremB (hProp22 : Prop22Statement.{u}) : TheoremBStatement.{u} := by
     rintro _ ⟨I, hI, rfl⟩
     rw [containerOf_fingerprint hI]
     exact lemma43 hProp22 hp0 hp1 hI
+
+/-- **Theorem B**, unconditionally: `hProp22` is discharged by `prop22` (M9). -/
+theorem theoremB_unconditional : TheoremBStatement.{u} :=
+  theoremB prop22
 
 end CamposSamotij

@@ -7,6 +7,7 @@ import CamposSamotij.Algorithm.Defs
 import CamposSamotij.Section4.Lemma41
 import CamposSamotij.Section4.Lemma42
 import CamposSamotij.Prop22.Statement
+import CamposSamotij.Prop22.Proof.Induction
 import CamposSamotij.Section4.Lemma43
 import CamposSamotij.Statement
 import CamposSamotij.TheoremB

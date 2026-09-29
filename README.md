@@ -262,8 +262,10 @@ which is what Lemma 4.3 needs. If the paper's statement differs (hypotheses,
 strictness, exponent form), `Prop22Statement` must follow the paper, and
 §4.5 step 6 must be re-derived.
 
-Future proof routes, deferred until Theorem B is done: relative entropy/KL;
-compression plus Kruskal–Katona; weighted Boolean-cube edge-isoperimetry.
+**Proved (M9, 2026-09-29)** as `prop22` in `Prop22/Proof/Induction.lean`, by induction on
+$|W|$: the paper's first proof (chain rule for relative entropy) unrolled one coordinate at a
+time, so that only finite sums and concavity of $\log$ are used (`divergence.md` D12).
+`theoremB_unconditional : TheoremBStatement` in `TheoremB.lean` is `theoremB prop22`.
 
 ---
 
@@ -293,7 +295,7 @@ CamposSamotij/
 │  └─ Lemma43.lean              M7
 ├─ Prop22/
 │  ├─ Statement.lean            M7 (`Prop22Statement`)
-│  └─ Proof/                    M9 (later)
+│  └─ Proof/Induction.lean      M9 (`prop22`)
 ├─ TheoremB.lean                M8
 └─ Examples.lean                toy `decide` checks
 ```
@@ -309,7 +311,7 @@ CamposSamotij/
 | M6 | Real lemma $(1-p)^n\le(1-\delta)^m\Rightarrow \delta m\le pn$; Lemma 4.2 | `Probability/RealAux.lean`, `Section4/Lemma42.lean` | M3, M5 |
 | M7 | `Prop22Statement`; coupling identity; Lemma 4.3 | `Prop22/Statement.lean`, `Section4/Lemma43.lean` | M3, M5 |
 | M8 | Replay lemma; `g`, `f`, `𝒮`; Theorem B | `TheoremB.lean` | M5–M7 |
-| M9 | (later) Prove Proposition 2.2; discharge the hypothesis | `Prop22/Proof/…` | M8 |
+| M9 | Prove Proposition 2.2; discharge the hypothesis | `Prop22/Proof/Induction.lean` | M3 |
 
 **Statement file.** `Statement.lean` holds the final statements of Theorem B
 and Lemmas 4.1–4.3, with `sorry` proofs, from M0 onward. `Prop22Statement` is
@@ -430,6 +432,13 @@ Append-only. Each entry: date, what, why, who approved.
   $\mathcal S = g(\mathcal I(H))$ (divergence D11). `lake build` has no `sorry` anywhere, and
   `#print axioms CamposSamotij.theoremB` shows only `propext`, `Classical.choice`, `Quot.sound`.
   Version 1 Definition of Done met.
+* *2026-09-29* M9 done: `Prop22/Proof/Induction.lean` proves `prop22 : Prop22Statement` by
+  induction on $|C|$, through the unnormalized form
+  $\log(1-p)\,(|X|P - M/p) \le P\log P$ with $M=\sum_{A\in\mathcal I} P(X_p=A)|A|$. This form
+  also holds for empty families, so the induction needs no nonemptiness. The step is the
+  one-variable `two_point` inequality (concavity and monotonicity of $\log$). This is the paper's
+  first proof, done coordinate by coordinate (D12). `theoremB_unconditional := theoremB prop22`.
+  No `sorry`, and axioms are `propext`, `Classical.choice`, `Quot.sound`.
 * *(review)* Old README's math was corrupted by a LaTeX→Markdown conversion
   (`` `\mathcal `{=tex} `` artifacts); rewritten in `$…$`.
 
@@ -447,7 +456,8 @@ Theorem B (conditional on Prop 2.2)      [DONE] (`theoremB` proved; axioms: prop
  ├─ M6 Lemma 4.2                         [DONE]
  ├─ M7 Lemma 4.3                         [DONE]
  ├─ M8 Assembly                          [DONE]
- └─ Proposition 2.2                      [HYPOTHESIS; `Prop22Statement` FROZEN] (M9 not started)
+ ├─ M9 Proposition 2.2                   [DONE] (`prop22`; `Prop22Statement` FROZEN)
+ └─ Theorem B, unconditional             [DONE] (`theoremB_unconditional`; axioms: propext, Classical.choice, Quot.sound)
 ```
 
 Status values: `NOT STARTED` / `STATED` (in `Statement.lean`, `sorry` proof) /
