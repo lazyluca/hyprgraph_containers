@@ -79,5 +79,25 @@ Status values:
 - **Paper:** (b) and (c) quantify over $S\in\mathcal S$.
 - **README §2:** states them per input $I$, with $S=g(I)$.
 - **Effect:** equivalent for $\mathcal S := g(\mathcal I(H))$, the paper's own choice.
-  `Statement.lean` follows the paper's form.
-- **Status:** Pending. It will be settled when the frozen statement of `theoremB` is written.
+  `TheoremBStatement` (`Statement.lean`) follows the paper and quantifies over $S\in\mathcal S$.
+- **Status:** Resolved (2026-09-29): Lean follows the paper; only README §2 used the per-$I$ form.
+
+## D8. Theorem B: total functions $g$, $f$
+
+- **Paper (p. 3):** $\mathcal S\subseteq 2^V$, $g:\mathcal I(H)\to\mathcal S$, $f:\mathcal S\to 2^V$.
+- **Lean (`TheoremBStatement`, `Statement.lean`):** `𝒮 : Finset (Finset V)`, with
+  `g f : Finset V → Finset V` total. The typing of `g` becomes `∀ I, IsIndep H I → g I ∈ 𝒮`.
+  (a) is required only for independent `I`, and (b), (c) only for `S ∈ 𝒮`.
+- **Why:** subtypes for the domains add coercions everywhere and no content.
+- **Effect:** none. Restricting the total functions gives the paper's $g,f$. Conversely, the paper's
+  $g,f$ extend to total functions (by any value off the domain).
+- **Status:** Approved (2026-09-29).
+
+## D9. Theorem B: exponent and probability
+
+- **Paper:** $\Pr(S\cup C_p\in\mathcal I(H))\ge(1-p)^{\delta|C\setminus S|}$, with $C_p$ the
+  $p$-random subset of $C$.
+- **Lean:** `(1 - p) ^ (δ * ((f S \ S).card : ℝ)) ≤ probOn (f S) p (fun A ↦ IsIndep H (S ∪ A))`.
+  The power is `Real.rpow`, and (b) is `(S.card : ℝ) ≤ p * |V| / δ`, as in the paper.
+- **Effect:** none (D5 applies to `probOn`).
+- **Status:** Representation.

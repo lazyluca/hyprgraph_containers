@@ -49,10 +49,9 @@ Input: a hypergraph `H` on `V`, parameters `p, δ`, and `I ∈ 𝓘(H)`.
 * The in-code sketch above (step (a)) only asks `{v} ∉ Hᵢ`. The paper also asks
   `v ∉ Sᵢ`. We follow the paper (CLAUDE.md rule 6). Without `v ∉ Sᵢ` the potential
   argument for termination fails.
-
-⚠ UNSURE: `[DecidableEq V]` and `[LinearOrder V]` together give two `DecidableEq V`
-  instances — CLAUDE.md §6 prescribes both — no conflict so far because `Finset.min'`
-  needs only the order, but watch for instance mismatches in M5/M8.
+* Vertex types carry `[Fintype V] [LinearOrder V]` only. Decidable equality comes from the
+  order, so there is a single `DecidableEq V` instance (no diamond). The files below this one
+  (`Hypergraph/`, `Probability/`) take `[DecidableEq V]` and are instantiated from the order.
 
 ## Definitions
 
@@ -73,7 +72,7 @@ Input: a hypergraph `H` on `V`, parameters `p, δ`, and `I ∈ 𝓘(H)`.
 
 namespace CamposSamotij
 
-variable {V : Type*} [Fintype V] [DecidableEq V] [LinearOrder V]
+variable {V : Type*} [Fintype V] [LinearOrder V]
 
 /-- The state `(Hᵢ, Sᵢ)` of the algorithm at a stage `i`. -/
 structure State (V : Type*) where
@@ -141,12 +140,10 @@ section Lemmas
 
 variable {p δ : ℝ} {I : Finset V} {st : State V} {v : V}
 
-omit [LinearOrder V] in
 @[simp]
 theorem mem_container {H : Hypergraph V} : v ∈ container H ↔ {v} ∉ H := by
   simp [container]
 
-omit [LinearOrder V] in
 @[simp]
 theorem mem_eligibleSet : v ∈ eligibleSet p δ st ↔ Eligible p δ st v := by
   classical
@@ -184,12 +181,12 @@ theorem step_of_nextVertex (h : nextVertex p δ st = some v) :
     step p δ I st = update I st v := by
   simp [step, h]
 
-omit [Fintype V] [LinearOrder V] in
+omit [Fintype V] in
 theorem update_of_mem (hv : v ∈ I) :
     update I st v = ⟨st.H ∪ link st.H v, insert v st.S⟩ := by
   simp [update, hv]
 
-omit [Fintype V] [LinearOrder V] in
+omit [Fintype V] in
 theorem update_of_notMem (hv : v ∉ I) : update I st v = ⟨st.H ∪ {{v}}, st.S⟩ := by
   simp [update, hv]
 

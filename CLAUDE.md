@@ -77,7 +77,9 @@ Cases that always trigger it:
 ## 6. Lean conventions for this project
 
 - Namespace `CamposSamotij`. One file per milestone, grouped in subfolders (README §6 Layout).
-- Variables: `{V : Type*} [Fintype V] [DecidableEq V] [LinearOrder V]`.
+- Variables: `{V : Type*} [Fintype V] [LinearOrder V]`. Never add `[DecidableEq V]` next to
+  `[LinearOrder V]`, since that gives two instances. Files below `Algorithm/` that need no order
+  (`Hypergraph/`, `Probability/`, `Prop22/Statement.lean`) take `[DecidableEq V]` alone.
 - Hypergraphs: `Finset (Finset V)`. Independence:
   `def IsIndep (H : Finset (Finset V)) (I : Finset V) : Prop := ∀ e ∈ H, ¬ e ⊆ I`.
 - Link: `def link H v := (H.filter (v ∈ ·)).image (·.erase v)`, with update
