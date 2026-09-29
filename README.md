@@ -418,6 +418,12 @@ Append-only. Each entry: date, what, why, who approved.
   Divergences D8, D9 logged, and D7 resolved. **Awaiting human review before freezing.**
 * *2026-09-29* `TheoremBStatement` reviewed against the paper and **frozen** (DoD item 4).
   D8 approved. §7 row "Theorem B(3) with $\ge$" marked **Decided**. Approved by: user.
+* *2026-09-29* M1/M2 done: `IsIndep.mono` (heredity), `IsIndep.anti`, `isIndep_empty_iff`,
+  (Link) `isIndep_union_link`, and (Single) `isIndep_union_singleton`. M5 done: `lemma41` over the
+  new `stage p δ H I i` (`Algorithm/Defs.lean`), with the invariant bundled as `Invariant`
+  (the paper's items plus `H ⊆ Hᵢ`), and the consequences `fingerprint_subset` and
+  `subset_containerOf` ($S\subseteq I\subseteq C$). No `sorry`. The Lemma 4.1 statement is
+  not in `Statement.lean` (only the Theorem B and Prop 2.2 contracts are).
 * *(review)* Old README's math was corrupted by a LaTeX→Markdown conversion
   (`` `\mathcal `{=tex} `` artifacts); rewritten in `$…$`.
 
@@ -427,11 +433,11 @@ Append-only. Each entry: date, what, why, who approved.
 
 ```text
 Theorem B (conditional on Prop 2.2)      [STATED, FROZEN] (`TheoremBStatement` approved; `theoremB` 1 sorry)
- ├─ M1 Hypergraph                        [IN PROGRESS]
- ├─ M2 Updates (Link)/(Single)           [IN PROGRESS]
+ ├─ M1 Hypergraph                        [DONE]
+ ├─ M2 Updates (Link)/(Single)           [DONE]
  ├─ M3 Random subsets                    [DONE]
  ├─ M4 Algorithm                         [DONE]
- ├─ M5 Lemma 4.1                         [NOT STARTED]
+ ├─ M5 Lemma 4.1                         [DONE]
  ├─ M6 Lemma 4.2                         [IN PROGRESS] (RealAux STATED, 2 sorry)
  ├─ M7 Lemma 4.3                         [NOT STARTED]
  ├─ M8 Assembly                          [NOT STARTED]

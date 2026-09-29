@@ -101,3 +101,14 @@ Status values:
   The power is `Real.rpow`, and (b) is `(S.card : ℝ) ≤ p * |V| / δ`, as in the paper.
 - **Effect:** none (D5 applies to `probOn`).
 - **Status:** Representation.
+
+## D10. Lemma 4.1: extra conjunct and all stages
+
+- **Paper:** for each $i$ (implicitly $i\le J$): $S_i\subseteq I\in\mathcal I(H_i)$ and
+  $I'\in\mathcal I(H_i)\iff S_i\cup I'\in\mathcal I(H_i)$.
+- **Lean (`lemma41`, `Section4/Lemma41.lean`):** the same statement for every `i : ℕ`, over
+  `stage p δ H I i`, plus the conjunct $H\subseteq H_i$.
+- **Why:** under D4, stages after $J$ equal stage $J$. The paper uses $H\subseteq H_i$ without
+  proof at the start of Lemma 4.3.
+- **Effect:** a strengthening. Nothing is assumed beyond the paper.
+- **Status:** Representation.

@@ -59,7 +59,7 @@ Input: a hypergraph `H` on `V`, parameters `p, δ`, and `I ∈ 𝓘(H)`.
 * `condProbIndep p H v`: `P(v ∈ V_p | V_p ∈ 𝓘(H))`.
 * `Eligible p δ st v`: the condition in step (2a).
 * `eligibleSet`, `nextVertex`: the eligible vertices and the chosen `vᵢ`.
-* `update I st v`: steps (2b)/(2c). `step`, `run`: the loop.
+* `update I st v`: steps (2b)/(2c). `step`, `stage`, `run`: the loop.
 * `container H`: `{v : {v} ∉ H}`. `fingerprint`, `containerOf`: the outputs `S` and `C`.
 
 ## Results
@@ -113,10 +113,14 @@ noncomputable def step (p δ : ℝ) (I : Finset V) (st : State V) : State V :=
   | none => st
   | some v => update I st v
 
+/-- The state `(Hᵢ, Sᵢ)` after `i` rounds on input `I` (equal to `(H_J, S_J)` for `i ≥ J`). -/
+noncomputable def stage (p δ : ℝ) (H : Hypergraph V) (I : Finset V) (i : ℕ) : State V :=
+  (step p δ I)^[i] (State.init H)
+
 /-- The algorithm with input `I`: `|V|` rounds from `(H, ∅)`. By `run_stopped` this is the
 final stage `(H_J, S_J)`. -/
 noncomputable def run (p δ : ℝ) (H : Hypergraph V) (I : Finset V) : State V :=
-  (step p δ I)^[Fintype.card V] (State.init H)
+  stage p δ H I (Fintype.card V)
 
 /-- The container `C = {v ∈ V : {v} ∉ H}` read off a hypergraph (step (3)). -/
 def container (H : Hypergraph V) : Finset V :=
@@ -222,6 +226,12 @@ theorem nextVertex_iterate_eq_none :
       exact hv
     | some v =>
       exact nextVertex_iterate_eq_none n _ (Nat.lt_succ_iff.mp ((potential_step_lt hv).trans_le h))
+
+theorem stage_zero (H : Hypergraph V) : stage p δ H I 0 = State.init H := rfl
+
+theorem stage_succ (H : Hypergraph V) (i : ℕ) :
+    stage p δ H I (i + 1) = step p δ I (stage p δ H I i) :=
+  Function.iterate_succ_apply' _ _ _
 
 /-- **Termination** (paper, §4.2: `J ≤ |V|`): after `|V|` rounds no vertex is eligible,
 so `run` is the final stage `(H_J, S_J)`. -/

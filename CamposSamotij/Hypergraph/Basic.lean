@@ -19,6 +19,9 @@ See README §3, §4.1.
 
 ## Results
 
+* `isIndep_empty_iff`: `∅ ∈ 𝓘(H) ↔ ∅ ∉ E(H)`.
+* `IsIndep.mono`: heredity, `J ⊆ I ∈ 𝓘(H) → J ∈ 𝓘(H)`.
+* `IsIndep.anti`: antitonicity in `H`, `H ⊆ H' → 𝓘(H') ⊆ 𝓘(H)`.
 * `not_isIndep_of_singleton_mem`: if `{v} ∈ H` then no set containing `v` is
   independent; in particular `{v}` itself is not (`not_isIndep_singleton`).
 -/
@@ -97,6 +100,20 @@ theorem indepSets_eq_compl_upClosure (H : Hypergraph V) :
 end Closure
 
 /-! ### Results -/
+
+/-- `∅` is independent iff `∅` is not an edge. -/
+theorem isIndep_empty_iff {H : Hypergraph V} : IsIndep H ∅ ↔ ∅ ∉ H :=
+  ⟨fun h hH ↦ h ∅ hH subset_rfl, fun h _ he he0 ↦ h (Finset.subset_empty.mp he0 ▸ he)⟩
+
+/-- **Heredity**: subsets of independent sets are independent (`𝓘(H)` is a down-set). -/
+theorem IsIndep.mono {H : Hypergraph V} {I J : Finset V} (hI : IsIndep H I) (hJI : J ⊆ I) :
+    IsIndep H J :=
+  fun e he heJ ↦ hI e he (heJ.trans hJI)
+
+/-- **Antitonicity**: adding edges shrinks `𝓘`: if `H ⊆ H'` then `𝓘(H') ⊆ 𝓘(H)`. -/
+theorem IsIndep.anti {H H' : Hypergraph V} {I : Finset V} (hI : IsIndep H' I) (hHH' : H ⊆ H') :
+    IsIndep H I :=
+  fun e he ↦ hI e (hHH' he)
 
 /-- If `{v} ∈ E(H)`, then no set `I` with `v ∈ I` is independent in `H`. -/
 theorem not_isIndep_of_singleton_mem {H : Hypergraph V} {v : V} {I : Finset V}
