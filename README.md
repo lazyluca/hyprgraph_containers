@@ -1,336 +1,304 @@
-# Formalizing Campos–Samotij Theorem B in Lean 4 / mathlib
+# Campos–Samotij Theorem B in Lean 4 / mathlib
 
-> **Reading guide.** Items marked **⚠ VERIFY** are statements that were
-> reconstructed or corrected during roadmap review and have *not yet* been
-> checked line-by-line against the paper. They must be checked against the
-> paper before the corresponding Lean statement is frozen.
-> Assistant-specific working instructions live in [`CLAUDE.md`](CLAUDE.md).
+A complete, machine-checked formalization of **Theorem B** (the "hard-core" hypergraph
+container lemma) of
+
+> M. Campos and W. Samotij, *Towards an Optimal Hypergraph Container Lemma*,
+> International Mathematics Research Notices, 2022.
+
+The formalization covers Section 4 of the paper (the algorithm and Lemmas 4.1–4.3) and
+**Proposition 2.2**, so Theorem B is proved outright, with no hypotheses:
+
+```lean
+theorem CamposSamotij.theoremB_unconditional : TheoremBStatement
+-- #print axioms: [propext, Classical.choice, Quot.sound]
+```
+
+The library has no `sorry` and no `axiom`. It builds against Lean `v4.34.1` and mathlib
+`v4.34.1`.
+
+> **Authorship.** The Lean code in this repository, this README, and
+> [`divergence.md`](divergence.md) were **written by Claude** (Anthropic's AI model, working in
+> Claude Code). The repository owner (Luca, `lazyluca`) directed the work. They chose the target,
+> decided the design questions, and reviewed and approved every frozen statement and every
+> divergence from the paper before it was relied on. Commits are made from the owner's account.
+> See §10 for what this means for trusting the result.
 
 ---
 
 ## 1. Goal, scope, definition of done
 
-**Goal.** A Lean 4 / mathlib proof of **Theorem B** of
+**Goal.** A Lean 4 / mathlib proof of Theorem B of Campos–Samotij.
 
-> M. Campos and W. Samotij, *Towards an Optimal Hypergraph Container Lemma*,
-> IMRN 2022 (Section 4, Lemmas 4.1–4.3),
+**In scope:** hypergraphs, independent sets, the two update operations, the deterministic
+algorithm, Lemmas 4.1–4.3, reconstruction of the container from the fingerprint, Theorem B,
+and (added at the end, milestone M9) Proposition 2.2.
 
-**conditional on Proposition 2.2**, which enters as an explicit hypothesis
-(never as an `axiom`; see §5).
+**Out of scope:** asymptotic corollaries and the general, non-vertex versions of the algorithm.
 
-**In scope (version 1):** hypergraphs, independent sets, the two update
-operations, the deterministic algorithm, Lemmas 4.1–4.3, reconstruction of
-the container from the fingerprint, Theorem B.
+**Definition of done:** all items are met (2026-09-29).
 
-**Out of scope (version 1):** any proof of Proposition 2.2; asymptotic
-corollaries; the non-vertex (general) versions of the algorithm.
+1. ✅ `lake build` succeeds with no `sorry` anywhere under `CamposSamotij/`.
+2. ✅ `#print axioms CamposSamotij.theoremB` shows only `propext`, `Classical.choice`,
+   `Quot.sound`.
+3. ✅ `theoremB` takes `(hProp22 : Prop22Statement)` as a hypothesis, and `Prop22Statement` has
+   been checked against the paper's Proposition 2.2.
+4. ✅ The statement of `theoremB` in `Statement.lean` has been reviewed by a human against the
+   paper and is marked frozen.
+5. ✅ *(beyond version 1)* Proposition 2.2 is proved (`prop22`), which gives
+   `theoremB_unconditional`.
 
-**Definition of done (version 1):**
+**Checking it yourself.**
 
-1. `lake build` succeeds with no `sorry` anywhere under `CamposSamotij/`.
-2. `#print axioms CamposSamotij.theoremB` shows only `propext`,
-   `Classical.choice`, `Quot.sound`.
-3. `theoremB` takes `(hProp22 : Prop22Statement)` as a hypothesis, and
-   `Prop22Statement` has been checked against the paper's Proposition 2.2.
-4. The statement of `theoremB` in `Statement.lean` has been reviewed by a
-   human against the paper and is marked frozen.
+```sh
+lake exe cache get      # prebuilt mathlib
+lake build              # builds everything; there must be no errors and no `sorry` warnings
+```
+
+Then, in any file that imports `CamposSamotij`:
+
+```lean
+#print axioms CamposSamotij.theoremB_unconditional
+```
 
 ---
 
-## 2. The target statement
+## 2. The statement
 
-Let $H$ be a hypergraph on a finite vertex set $V$ and let
-$0 < p \le \delta < 1$. Write $\mathcal I(H)$ for the independent sets of $H$
-and $X_p$ for the $p$-random subset of a finite set $X$ (each element kept
-independently with probability $p$). Then there exist a family $\mathcal S$
-of *fingerprints* and functions
-$$
-g : \mathcal I(H) \to \mathcal S, \qquad f : \mathcal S \to \mathcal P(V)
-$$
-such that for every $I \in \mathcal I(H)$:
+### 2.1 Paper (p. 3)
 
-1. $g(I) \subseteq I \subseteq f(g(I))$;
-2. $|g(I)| \le p|V|/\delta$;
-3. with $S = g(I)$ and $C = f(S)$,
-   $$\Pr\big(S \cup C_p \in \mathcal I(H)\big) \;\ge\; (1-p)^{\delta\,|C\setminus S|}.$$
+Let $H$ be a hypergraph with a finite vertex set $V$. For all reals $\delta$ and $p$ with
+$0 < p \le \delta < 1$, there exist a family $\mathcal S \subseteq 2^V$ and functions
+$g : \mathcal I(H) \to \mathcal S$ and $f : \mathcal S \to 2^V$ such that:
 
-**Checked against the paper (2026-09-27): Theorem B(c) states $\ge$.** Original note: The previous README wrote
-$>$. That cannot hold when $C = S$: then the left side is $1$ (since
-$S \subseteq I$ is independent) and so is the right side. The same problem
-appears in Lemma 4.3's expectation bound when $C' = \varnothing$. Version 1
-proves $\ge$. Check the paper's exact inequality and any side conditions
-before freezing.
+- **(a)** $g(I) \subseteq I \subseteq f(g(I))$ for each $I \in \mathcal I(H)$;
+- **(b)** each $S \in \mathcal S$ has at most $p|V|/\delta$ elements;
+- **(c)** for every $S \in \mathcal S$, with $C := f(S)$,
+  $\;\Pr(S \cup C_p \in \mathcal I(H)) \ge (1-p)^{\delta|C \setminus S|}$.
 
-The paper is authoritative. Do not replace this statement with a weaker or
-different container theorem.
+Here $\mathcal I(H)$ is the family of independent sets of $H$, and $C_p$ is the $p$-random
+subset of $C$ (each element kept independently with probability $p$).
+
+### 2.2 Lean (`CamposSamotij/Statement.lean`, frozen)
+
+```lean
+def TheoremBStatement : Prop :=
+  ∀ {V : Type u} [Fintype V] [LinearOrder V] (H : Hypergraph V) (p δ : ℝ),
+    0 < p → p ≤ δ → δ < 1 →
+    ∃ (𝒮 : Finset (Finset V)) (g f : Finset V → Finset V),
+      (∀ I, IsIndep H I → g I ∈ 𝒮) ∧                                  -- g : 𝓘(H) → 𝒮
+      (∀ I, IsIndep H I → g I ⊆ I ∧ I ⊆ f (g I)) ∧                    -- (a)
+      (∀ S ∈ 𝒮, (S.card : ℝ) ≤ p * Fintype.card V / δ) ∧              -- (b)
+      (∀ S ∈ 𝒮, (1 - p) ^ (δ * ((f S \ S).card : ℝ)) ≤                 -- (c)
+        probOn (f S) p (fun A ↦ IsIndep H (S ∪ A)))
+```
+
+The main theorems:
+
+| Lean name | File | Statement |
+|---|---|---|
+| `theoremB` | `TheoremB.lean` | `Prop22Statement → TheoremBStatement` |
+| `prop22` | `Prop22/Proof/Induction.lean` | `Prop22Statement` |
+| `theoremB_unconditional` | `TheoremB.lean` | `TheoremBStatement` (`= theoremB prop22`) |
+
+The `[LinearOrder V]` fixes a rule for picking vertices in the algorithm (§7, D3). It costs no
+generality, because every finite type admits a linear order.
 
 ---
 
 ## 3. Notation: paper ↔ Lean
 
-| Paper | Meaning | Lean (proposed, see §7) |
+| Paper | Meaning | Lean |
 |---|---|---|
-| $V$ | finite vertex set | type `V` with `[Fintype V] [LinearOrder V]` (equality decided via the order) |
-| $H$, $H_i$ | original / evolving hypergraph | `Finset (Finset V)` |
-| $\mathcal I(H)$ | independent sets | `IsIndep H I : Prop` (`∀ e ∈ H, ¬ e ⊆ I`); the family is `indepSets H` |
-| $\langle G\rangle$ | up-set generated by $G$ | `upClosure G` |
-| $G$ covers $H$ | $H\subseteq\langle G\rangle$ | `Covers G H` |
-| $\partial_v H$ | link of $v$: $\{A\setminus\{v\} : v \in A \in H\}$ | `link H v` |
-| $H \cup \{\{v\}\}$ | singleton-edge insertion | `addSingleton H v` |
-| $S_i$, $S$ | fingerprint (stage $i$ / final) | field `S` of `State` |
-| $C$ | container $\{v : \{v\}\notin H_J\}$ | `container H_J` |
-| $X_p$ | $p$-random subset of $X$ | finite weighted sum `probOn X p` (see §7) |
-
-Keep these five objects distinct everywhere: $H$, $H_i$, $S_i$, $C$, $V_p$.
-
-### 3.1 What mathlib already provides (checked at Mathlib `v4.34.1`)
-
-Found by searching the Mathlib `v4.34.1` source (commit `d13f23b7`). Names were
-**found in the source but not yet compiled in this project**, so CLAUDE.md
-rule 5 still applies before using them.
-
-| Object | In mathlib? | Where / name | Consequence for us |
-|---|---|---|---|
-| Hypergraph | **Yes, but not usable as-is** | `Hypergraph α` in `Combinatorics/Hypergraph/Basic.lean`: `vertexSet : Set α`, `edgeSet : Set (Set α)` | `Set`-based, no finiteness, no sums, no `decide`. Keep our own `Finset (Finset V)` (§7). Optionally add a bridge to `Hypergraph` later. |
-| Independent sets of a hypergraph | **No** | only graphs: `SimpleGraph.IsIndepSet`, `indepSetFinset` | Define `IsIndep` ourselves (M1). |
-| Link $\partial_v H$, $H\cup\{\{v\}\}$ | **No** | none | Define ourselves (M2). |
-| Container lemma / algorithm | **No** | none | Whole of Section 4 is new. |
-| Down-sets of `Finset`s | **Yes** | `IsLowerSet (𝒜 : Set (Finset α))`; `Finset.memberSubfamily`, `nonMemberSubfamily` (`SetFamily/Compression/Down.lean`), `IsLowerSet.memberSubfamily` (`SetFamily/HarrisKleitman.lean`) | Use `IsLowerSet` for $\mathcal F$ in `Prop22Statement` and Lemma 4.3 step 2. |
-| $p$-random subset $X_p$ | **No generic API** | `ProbabilityTheory.binomial` (`Probability/Distributions/Binomial.lean`) is measure-theoretic and only gives the *size* law; `bernoulliMeasure`, `PMF.bernoulli` are single coins | Confirms the finite-sum design of §7 / M3. |
-| Binomial/product sums over a powerset | **Yes** | `Finset.sum_pow_mul_eq_add_pow` ($\sum_{t\subseteq s}a^{|t|}b^{|s|-|t|}=(a+b)^{|s|}$), `Finset.prod_add` ($\prod(f+g)=\sum_{t\subseteq s}\prod_t f\prod_{s\setminus t} g$), `Fintype.sum_pow_mul_eq_add_pow` | Normalisation $\sum_A w(A)=1$ and the splitting/product lemma over $W=A\sqcup B$ in M3. |
-| Conditional probability | **Yes (measure-theoretic)** | `ProbabilityTheory.cond` | Not used in version 1; we use `condProb` over finite sums. |
-| Real analysis for `RealAux` | **Yes** | `Real.rpow_natCast`, `Real.rpow_le_rpow_of_exponent_ge`, `Real.rpow_le_rpow_left_iff_of_base_lt_one`, `Real.log_le_sub_one_of_pos`, `Real.one_sub_le_exp_neg`, `strictConcaveOn_log_Ioi`, `ConvexOn.slope_mono_adjacent`, `ConvexOn.secant_mono_aux1/2/3` | Enough for $(1-p)^n\le(1-\delta)^m\Rightarrow\delta m\le pn$ via convexity/secant slopes. |
-| Correlation inequalities | **Yes** | `IsLowerSet.le_card_inter_finset` (Harris–Kleitman, uniform measure), `fkg`, `holley`, `four_functions_theorem` (`SetFamily/FourFunctions.lean`) | Not needed for Theorem B. Possibly useful for M9. |
-| Tools for proving Prop 2.2 (M9) | **Partly** | KL divergence `InformationTheory/KullbackLeibler/`, `Real.binEntropy`, Kruskal–Katona `SetFamily/KruskalKatona.lean` (on `Fin n`) | The entropy and Kruskal–Katona routes have a starting point. There is no Boolean-cube edge-isoperimetry. |
+| $V$ | finite vertex set | type `V` with `[Fintype V] [LinearOrder V]` |
+| $H$, $H_i$ | original / evolving hypergraph | `Hypergraph V := Finset (Finset V)` |
+| $\mathcal I(H)$ | independent sets | `IsIndep H I` (`∀ e ∈ H, ¬ e ⊆ I`); family `indepSets H` |
+| $\langle G\rangle$, "$G$ covers $H$" | up-set generated by $G$; $H\subseteq\langle G\rangle$ | `upClosure G`, `Covers G H` |
+| $\partial_v H$ | link: $\{A\setminus\{v\} : v \in A \in H\}$ | `link H v` |
+| $H\cup\partial_v H$, $H \cup \{\{v\}\}$ | the two updates | plain `Finset` unions |
+| $(H_i, S_i)$ | state at stage $i$ | `State`, `stage p δ H I i` |
+| $(H_J, S_J)$ | final state | `run p δ H I` |
+| $S$, $C = \{v : \{v\}\notin H_J\}$ | fingerprint, container | `fingerprint p δ H I`, `containerOf p δ H I` |
+| $\Pr(X_p \in \mathcal F)$ | probability for a $p$-random subset | `probOn X p E` (finite weighted sum) |
+| $\Pr(\cdot\mid\cdot)$, $\mathbb E[\cdot\mid\cdot]$ | conditional probability / expectation | `condProb`, `condExp` |
 
 ---
 
-## 4. Proof outline (as it will be formalized)
+## 4. Proof outline (as formalized)
 
-### 4.1 Update operations: the combinatorial engine
+### 4.1 Update operations (`Hypergraph/Updates.lean`)
 
 For every $I'$:
 
 $$
-\textbf{(Link)}\qquad I' \in \mathcal I(H \cup \partial_v H) \iff \{v\}\cup I' \in \mathcal I(H),
+\textbf{(Link)}\quad I' \in \mathcal I(H \cup \partial_v H) \iff \{v\}\cup I' \in \mathcal I(H),
+\qquad
+\textbf{(Single)}\quad I' \in \mathcal I(H \cup \{\{v\}\}) \iff I' \in \mathcal I(H) \wedge v \notin I'.
 $$
-$$
-\textbf{(Single)}\qquad I' \in \mathcal I(H \cup \{\{v\}\}) \iff I' \in \mathcal I(H) \wedge v \notin I'.
-$$
 
-Both are elementary and checked. For (Link), an edge $A \subseteq \{v\}\cup I'$
-either avoids $v$, and then $A \subseteq I'$, or contains it, and then
-$A \setminus \{v\} \in \partial_v H$ lies in $I'$. Also
-$\mathcal I$ is **antitone in $H$** (adding edges shrinks $\mathcal I$) and
-**down-closed** (hereditary). Both facts are used repeatedly.
+These are `isIndep_union_link` and `isIndep_union_singleton`. $\mathcal I$ is also hereditary
+(`IsIndep.mono`) and antitone in $H$ (`IsIndep.anti`).
 
-### 4.2 The algorithm
+### 4.2 The algorithm (`Algorithm/Defs.lean`)
 
-Input: $H$ and an independent set $I$. Set $H_0 = H$, $S_0 = \varnothing$.
-
-A vertex $v$ is **eligible at stage $i$** iff
+Start from $H_0 = H$ and $S_0 = \varnothing$. A vertex $v$ is **eligible** at $(H_i,S_i)$
+(`Eligible`) iff
 
 $$
 v \notin S_i,\qquad \{v\} \notin H_i,\qquad
 \Pr\big(v \in V_p \mid V_p \in \mathcal I(H_i)\big) < (1-\delta)p .
 $$
 
-**Checked against the paper (2026-09-29): step (2a) requires both $v\notin S_i$ and $\{v\}\notin H_i$.** Original note: The previous README only required
-$v \in V \setminus S_i$. With that rule the algorithm does **not** terminate:
-once $\{v\}$ is an edge, $\Pr(v \in V_p \mid V_p\in\mathcal I(H_i)) = 0 < (1-\delta)p$,
-so $v$ stays eligible forever. The condition $\{v\}\notin H_i$ (equivalently
-$v \in C_i \setminus S_i$) is what makes the paper's termination remark
-true. Check how the paper phrases this.
+If some vertex is eligible, let $v_i$ be the **least** one (`nextVertex`). Then:
 
-Step: if an eligible vertex exists, let $v_i$ be the **least** one in the fixed
-linear order on $V$.
+- if $v_i \in I$: set $S_{i+1} = S_i \cup \{v_i\}$ and $H_{i+1} = H_i \cup \partial_{v_i} H_i$;
+- otherwise: set $S_{i+1} = S_i$ and $H_{i+1} = H_i \cup \{\{v_i\}\}$.
 
-* if $v_i \in I$: $S_{i+1} = S_i \cup \{v_i\}$, $H_{i+1} = H_i \cup \partial_{v_i} H_i$;
-* if $v_i \notin I$: $S_{i+1} = S_i$, $H_{i+1} = H_i \cup \{\{v_i\}\}$.
+Stop when no vertex is eligible, and output $S = S_J$ and $C = \{v : \{v\}\notin H_J\}$.
 
-Stop at the first stage $J$ with no eligible vertex. Output $S = S_J$ and
-$C = \{v : \{v\} \notin H_J\}$.
+- **Termination.** The potential $\#\{v : v\notin S_i,\ \{v\}\notin H_i\}$ strictly decreases
+  (`potential_step_lt`). So `run` is $|V|$ iterations of a `step` that is the identity once
+  stopped, and `run_stopped` proves the result is stopped.
+- **Key fact.** $v_i$ is a function of $(H_i,S_i)$ alone. The input $I$ enters only through the
+  bit $[v_i \in I]$.
 
-**Termination.** The potential $\#\{v : v \notin S_i,\ \{v\}\notin H_i\}$
-strictly decreases each step, because $H_i$ only grows. So $J \le |V|$ and
-the algorithm can be written as $|V|$-fold iteration of a step function that
-is the identity once stopped. No well-founded recursion is needed.
+### 4.3 Lemma 4.1: invariant (`Section4/Lemma41.lean`)
 
-**Well-definedness of conditional probabilities.** $P_i > 0$ because
-$I \in \mathcal I(H_i)$ (Lemma 4.1) implies $\varnothing \in \mathcal I(H_i)$, so
-$P_i \ge (1-p)^{|V|} > 0$. This must be carried as a proof obligation.
-
-**Key design fact.** The choice of $v_i$ depends only on $(H_i, S_i)$. The
-input $I$ is used only through the bit $[v_i \in I]$. This is what makes
-$f$ well-defined (§4.6).
-
-### 4.3 Lemma 4.1: invariant
-
-For every stage $i$:
+At every stage the following hold (`Invariant`, `lemma41`):
 
 1. $S_i \subseteq I$;
 2. $I \in \mathcal I(H_i)$;
-3. for all $I'$: $I' \in \mathcal I(H_i) \iff S_i \cup I' \in \mathcal I(H_i)$
-   (the direction $\Leftarrow$ is trivial by heredity);
-4. $H \subseteq H_i$, so $\mathcal I(H_i) \subseteq \mathcal I(H)$.
+3. $I' \in \mathcal I(H_i) \iff S_i \cup I' \in \mathcal I(H_i)$ for all $I'$;
+4. $H \subseteq H_i$.
 
-The proof is by induction, using (Link) for $v_i \in I$ and (Single) for
-$v_i \notin I$. All four cases have been checked on paper.
-**⚠ VERIFY:** that item 3 matches the paper's exact formulation. Some
-formulations use $\mathcal I(H)$ on the right. That version is *false* as an
-iff in the singleton case, and only the $\Rightarrow$ direction survives.
+Item 4 is used but not stated in the paper (D10). Consequences:
+$S \subseteq I \subseteq C$ (`fingerprint_subset`, `subset_containerOf`).
 
-Consequences: $S \subseteq I$, $I \in \mathcal I(H_J)$, and $I \subseteq C$.
-Every $u \notin C$ has $\{u\}\in H_J$, so $u \notin I$.
+### 4.4 Lemma 4.2: fingerprint size (`Section4/Lemma42.lean`, `Probability/RealAux.lean`)
 
-### 4.4 Lemma 4.2: fingerprint size
+With $P_i = \Pr(V_p \in \mathcal I(H_i))$, each round gives $P_{i+1} \le (1-\delta)^{[v_i\in I]}P_i$
+(`probIndep_step_le`). So
+$(1-p)^{|V|} \le P_J \le (1-\delta)^{|S|}$.
 
-Let $P_i = \Pr(V_p \in \mathcal I(H_i))$. Then
-$P_{i+1} \le (1-\delta)^{[v_i \in I]} P_i$.
+The real-analysis lemma `delta_mul_le_of_pow_le` then turns this into $\delta|S| \le p|V|$
+(`lemma42`). It argues, as the paper does, through the monotonicity of
+$x\mapsto(1-x)^{1/x}$.
 
-* $v_i \notin I$: $\mathcal I(H_{i+1}) \subseteq \mathcal I(H_i)$, so $P_{i+1} \le P_i$.
-* $v_i \in I$: by (Link),
-  $V_p \in \mathcal I(H_{i+1}) \iff V_p \cup\{v_i\} \in \mathcal I(H_i)$, and
-  $V_p\cup\{v_i\}$ has the law of $V_p$ conditioned on $v_i \in V_p$. Hence
-  $p\,P_{i+1} = \Pr(v_i \in V_p,\ V_p \in \mathcal I(H_i)) < (1-\delta)p\,P_i$.
+### 4.5 Lemma 4.3: container probability (`Section4/Lemma43.lean`)
 
-Hence $(1-p)^{|V|} = \Pr(V_p = \varnothing) \le P_J \le (1-\delta)^{|S|}$.
+Let $C' = C\setminus S$. The proof has four steps:
 
-**Real-analysis lemma (isolate it):** for $0<p\le\delta<1$ and $n,m\in\mathbb N$,
-$(1-p)^n \le (1-\delta)^m \Rightarrow \delta m \le p n$.
-The proof goes through logs and the monotonicity of $x \mapsto -\log(1-x)/x$
-on $(0,1)$, which follows from convexity of $-\log(1-x)$ with value $0$ at $0$.
+1. Monotonicity in $H$ reduces the problem to $H_J$.
+2. The **coupling identity** `condProb_coupling` shows, for $v\in C'$,
+   $\Pr(v\in C'_p \mid S\cup C'_p\in\mathcal I(H_J)) = \Pr(v\in V_p\mid V_p\in\mathcal I(H_J))$.
+   It is proved as a finite-sum factorization over $V = (V\setminus C')\sqcup C'$.
+3. Every $v\in C'$ is not eligible, so the right-hand side is $\ge(1-\delta)p$.
+4. Summing and applying Proposition 2.2 (`prop22_rpow`) gives
+   $\Pr(S\cup C_p\in\mathcal I(H))\ge(1-p)^{\delta|C'|}$ (`lemma43`).
 
-### 4.5 Lemma 4.3: container probability
+### 4.6 Theorem B: assembly (`TheoremB.lean`)
 
-Let $C' = C \setminus S$. Goal: $\Pr(S \cup C'_p \in \mathcal I(H)) \ge (1-p)^{\delta|C'|}$.
+The **replay lemma** `stage_fingerprint` shows that for $I\in\mathcal I(H)$ and
+$S = g(I)$, the runs on input $I$ and on input $S$ pass through the same states. At each
+round, $v_i\in I\iff v_i\in S$: "⇒" because $v_i$ joins $S_{i+1}\subseteq S$, and "⇐" because
+$S\subseteq I$.
 
-1. By monotonicity (4.3 item 4) it suffices to bound
-   $\Pr(S \cup C'_p \in \mathcal I(H_J))$.
-2. $\mathcal F := \{X \subseteq C' : S \cup X \in \mathcal I(H_J)\}$ is a nonempty
-   down-set of $\mathcal P(C')$.
-3. **Coupling identity.** For $v \in C'$:
-   $\Pr(v \in C'_p \mid C'_p \in \mathcal F) = \Pr(v \in V_p \mid V_p \in \mathcal I(H_J))$.
-   Reason: $V_p \in \mathcal I(H_J)$ forces $V_p \subseteq C$. By Lemma 4.1(3)
-   the event equals $\{S \cup (V_p\cap C') \in \mathcal I(H_J)\}$, which
-   depends only on $V_p \cap C'$. That set has the law of $C'_p$ and is
-   independent of $V_p \cap S$.
-4. Stopping: each $v \in C'$ satisfies $v\notin S$ and $\{v\}\notin H_J$ but
-   is not eligible, so $\Pr(v \in V_p \mid V_p\in\mathcal I(H_J)) \ge (1-\delta)p$.
-5. Summing: $\mathbb E\big[|C'_p| \mid C'_p\in\mathcal F\big] \ge (1-\delta)p|C'|$.
-6. Apply Proposition 2.2.
+The construction is:
 
-Step 3 is the most delicate probabilistic step. Formalize it as a pure
-finite-sum identity (§7).
+- $g(I) :=$ `fingerprint p δ H I`;
+- $f(S) :=$ `containerOf p δ H S`, which reruns the algorithm on $S$;
+- $\mathcal S := g(\mathcal I(H))$.
 
-### 4.6 Theorem B: assembly
+The replay lemma gives `containerOf_fingerprint`, i.e. $f(g(I)) = C(I)$. Then (a) follows from
+Lemma 4.1, (b) from Lemma 4.2, and (c) from Lemma 4.3.
 
-Define `run H I : State` (§4.2). Prove the **replay lemma**:
+### 4.7 Proposition 2.2 (`Prop22/Proof/Induction.lean`)
+
+**Paper (p. 5).** For finite $C$, a decreasing family $\mathcal I\subseteq 2^C$ and $p\in(0,1)$,
 
 $$
-\texttt{run}(H, I) = \texttt{run}(H, S) \quad\text{where } S = (\texttt{run}(H,I)).S .
+\log\Pr(C_p\in\mathcal I)\ \ge\ \big(|C| - \mathbb E[|C_p|\mid C_p\in\mathcal I]/p\big)\log(1-p).
 $$
 
-It holds because at each step $v_i \in I \iff v_i \in S$: "$\Rightarrow$" since
-$v_i$ is added to $S$, and "$\Leftarrow$" since $S \subseteq I$. The eligibility
-test does not look at $I$.
+**Proof in Lean.** The proof is by induction on $|C|$, and it is the paper's first proof
+(Appendix A) done one coordinate at a time (D12):
 
-Then set $g(I) := (\texttt{run}(H,I)).S$, $f(S) := \text{container of } \texttt{run}(H,S)$,
-and $\mathcal S := g(\mathcal I(H))$. With this, $f$ is an honest function and
-no choice or quotient is needed. (a) comes from Lemma 4.1 plus replay, (b) from
-Lemma 4.2, and (c) from Lemma 4.3.
+- **Split on one vertex.** Take a vertex $v$ and let $\mathcal I_0 = \{A\in\mathcal I : v\notin A\}$
+  and $\mathcal I_1 = \{B : B\cup\{v\}\in\mathcal I\}$. Downward closure gives
+  $\mathcal I_1\subseteq\mathcal I_0$. Write $a = \Pr(\mathcal I_0)$ and $b=\Pr(\mathcal I_1)$, so
+  $b \le a$.
+- **The invariant.** The induction proves the unnormalized form
+  $\log(1-p)\,(|C|P - M/p)\le P\log P$, where $P = \Pr(C_p\in\mathcal I)$ and
+  $M=\sum_{A\in\mathcal I}\Pr(C_p=A)|A|$ (`prop22_unnormalized`). This form also holds for
+  empty families, so the induction needs no nonemptiness.
+- **The step.** Each induction step reduces to the one-variable inequality `two_point`:
+  $(1-p)a\log a + pb\log b + (1-p)(a-b)\log(1-p)\le P\log P$, where $P=(1-p)a+pb$ and
+  $0\le b\le a$. It follows from concavity of $\log$ and $(1-p)a\le P$.
+- **Conclusion.** Dividing by $P>0$ gives `prop22`.
 
 ---
 
-## 5. Proposition 2.2 (black box)
+## 5. Proposition 2.2 in the development
 
-Proposition 2.2 enters **only** as a hypothesis
-`(hProp22 : Prop22Statement)`. It is never introduced with `axiom`, so that
-`#print axioms` stays clean and the dependency stays visible in every
-signature.
+Proposition 2.2 was first a black box. `Prop22Statement` (`Prop22/Statement.lean`) is the
+paper's log form plus the hypothesis `𝓘.Nonempty` (D1), and it was frozen. `theoremB` takes it
+as the hypothesis `hProp22`, never as an `axiom`. Lemma 4.3 uses the exponentiated form
+`prop22_rpow`:
 
-**Frozen (2026-09-29).** The Lean statement is `Prop22Statement` in `Prop22/Statement.lean`: the paper's log form plus `𝓘.Nonempty` (see [`divergence.md`](divergence.md) D1). Original note: The
-previous README never stated Proposition 2.2. The form needed by §4.5 is:
+$$
+\Pr(C_p\in\mathcal I)\ \ge\ (1-p)^{\,|C| - \mathbb E[|C_p|\mid C_p\in\mathcal I]/p}.
+$$
 
-> Let $W$ be finite, $0<p<1$, and $\mathcal F \subseteq \mathcal P(W)$ a
-> nonempty down-set. Then
-> $$\Pr(W_p \in \mathcal F) \;\ge\; (1-p)^{\,|W| - \mathbb E[|W_p| \,\mid\, W_p\in\mathcal F]/p}.$$
-
-With $\mathbb E[\cdot] \ge (1-\delta)p|W|$ the exponent is $\le \delta|W|$.
-Since $0<1-p<1$, this gives $\Pr(W_p\in\mathcal F) \ge (1-p)^{\delta|W|}$,
-which is what Lemma 4.3 needs. If the paper's statement differs (hypotheses,
-strictness, exponent form), `Prop22Statement` must follow the paper, and
-§4.5 step 6 must be re-derived.
-
-**Proved (M9, 2026-09-29)** as `prop22` in `Prop22/Proof/Induction.lean`, by induction on
-$|W|$: the paper's first proof (chain rule for relative entropy) unrolled one coordinate at a
-time, so that only finite sums and concavity of $\log$ are used (`divergence.md` D12).
-`theoremB_unconditional : TheoremBStatement` in `TheoremB.lean` is `theoremB prop22`.
+The hypothesis was discharged by `prop22` (M9, §4.7). The conditional `theoremB` is kept, so
+the dependency on Proposition 2.2 stays visible. The hypothesis `𝓘 ⊆ C.powerset` in
+`Prop22Statement` turned out to be unnecessary for the proof. It is kept because the
+statement is frozen.
 
 ---
 
-## 6. Roadmap (single numbering; supersedes all earlier milestone lists)
-
-Each milestone lists its files, deliverable, and exit criterion. A milestone
-is done only when its file builds with **zero `sorry`**. Paths are relative
-to `CamposSamotij/`.
+## 6. Layout and roadmap
 
 ### Layout
 
 ```text
 CamposSamotij.lean              root: imports every module
 CamposSamotij/
-├─ Statement.lean               frozen contract (Lemmas 4.1–4.3, Theorem B)
+├─ Statement.lean               frozen contract: TheoremBStatement
 ├─ Hypergraph/
-│  ├─ Basic.lean                M1
-│  └─ Updates.lean              M2
+│  ├─ Basic.lean                M1  Hypergraph, IsIndep, heredity, antitonicity, upClosure
+│  └─ Updates.lean              M2  link, (Link), (Single)
 ├─ Probability/
-│  ├─ RandomSubset.lean         M3
-│  └─ RealAux.lean              M6
+│  ├─ RandomSubset.lean         M3  weight, probOn, condProb, condExp, splitting lemmas
+│  └─ RealAux.lean              M6  (1-p)^n ≤ (1-δ)^m ⇒ δm ≤ pn
 ├─ Algorithm/
-│  └─ Defs.lean                 M4
+│  └─ Defs.lean                 M4  State, Eligible, nextVertex, step, stage, run, termination
 ├─ Section4/
-│  ├─ Lemma41.lean              M5
-│  ├─ Lemma42.lean              M6
-│  └─ Lemma43.lean              M7
+│  ├─ Lemma41.lean              M5  invariant, S ⊆ I ⊆ C
+│  ├─ Lemma42.lean              M6  |S| ≤ p|V|/δ
+│  └─ Lemma43.lean              M7  coupling identity, container probability
 ├─ Prop22/
-│  ├─ Statement.lean            M7 (`Prop22Statement`)
-│  └─ Proof/Induction.lean      M9 (`prop22`)
-├─ TheoremB.lean                M8
-└─ Examples.lean                toy `decide` checks
+│  ├─ Statement.lean            M7  frozen Prop22Statement, prop22_rpow
+│  └─ Proof/Induction.lean      M9  prop22
+├─ TheoremB.lean                M8  replay lemma, theoremB, theoremB_unconditional
+└─ Examples.lean                small `decide` sanity checks
 ```
+
+### Milestones
+
+All milestones are done.
 
 | # | Milestone | File | Depends on |
 |---|---|---|---|
-| M0 | Setup: pin Lean/mathlib, namespace `CamposSamotij`, CI `lake build` | `lakefile.lean`, `lean-toolchain` | none |
-| M1 | Hypergraphs, `IsIndep`, heredity, antitonicity, `∅`, singletons | `Hypergraph/Basic.lean` | M0 |
-| M2 | `link`, `addSingleton`, (Link), (Single), small `decide` examples | `Hypergraph/Updates.lean` | M1 |
-| M3 | Finite $p$-random subsets: `weight`, `probOn`, conditional prob/expectation, “condition on $v\in X_p$”, product/splitting over $W = A \sqcup B$ | `Probability/RandomSubset.lean` | M0 |
-| M4 | Algorithm: `State`, `eligible`, `step`, `run` (fuel $\lvert V\rvert$), stopping, termination, `container` | `Algorithm/Defs.lean` | M2, M3 |
+| M0 | Setup: Lean/mathlib `v4.34.1`, namespace `CamposSamotij` | `lakefile.lean`, `lean-toolchain` | none |
+| M1 | Hypergraphs and independence | `Hypergraph/Basic.lean` | M0 |
+| M2 | Link and singleton updates | `Hypergraph/Updates.lean` | M1 |
+| M3 | Finite $p$-random subsets | `Probability/RandomSubset.lean` | M0 |
+| M4 | The algorithm and termination | `Algorithm/Defs.lean` | M2, M3 |
 | M5 | Lemma 4.1 | `Section4/Lemma41.lean` | M4 |
-| M6 | Real lemma $(1-p)^n\le(1-\delta)^m\Rightarrow \delta m\le pn$; Lemma 4.2 | `Probability/RealAux.lean`, `Section4/Lemma42.lean` | M3, M5 |
-| M7 | `Prop22Statement`; coupling identity; Lemma 4.3 | `Prop22/Statement.lean`, `Section4/Lemma43.lean` | M3, M5 |
-| M8 | Replay lemma; `g`, `f`, `𝒮`; Theorem B | `TheoremB.lean` | M5–M7 |
-| M9 | Prove Proposition 2.2; discharge the hypothesis | `Prop22/Proof/Induction.lean` | M3 |
-
-**Statement file.** `Statement.lean` holds the final statements of Theorem B
-and Lemmas 4.1–4.3, with `sorry` proofs, from M0 onward. `Prop22Statement` is
-defined in `Prop22/Statement.lean` and is part of the same contract.
-These are the contract. Changing them requires a human decision logged in §8.
-
-**First coding tasks, in order:** M1 → M2 (the equivalences (Link) and (Single)
-are the interface between paper and Lean) → M3 basics → only then M4.
-
-### Dependency graph
-
-```text
-M1 Hypergraph ──► M2 Updates ──┐
-                               ├──► M4 Algorithm ──► M5 Lemma 4.1 ──┬──► M6 Lemma 4.2 ──┐
-M3 RandomSubset ───────────────┘                                    │                   │
-      │                                                             └──► M7 Lemma 4.3 ──┼──► M8 Theorem B
-      └──────────────────────────────────────────────────────────────────────────────────┘        ▲
-                                                           Prop22Statement (hypothesis) ──┘
-```
+| M6 | Real lemma and Lemma 4.2 | `Probability/RealAux.lean`, `Section4/Lemma42.lean` | M3, M5 |
+| M7 | `Prop22Statement` and Lemma 4.3 | `Prop22/Statement.lean`, `Section4/Lemma43.lean` | M3, M5 |
+| M8 | Replay lemma and Theorem B | `TheoremB.lean` | M5–M7 |
+| M9 | Proposition 2.2 | `Prop22/Proof/Induction.lean` | M3 |
 
 ---
 
@@ -338,137 +306,134 @@ M3 RandomSubset ───────────────┘                
 
 | Decision | Status | Rationale |
 |---|---|---|
-| Hypergraph = `Finset (Finset V)` over `[Fintype V]` | **Decided** (2026-09-29) | Finite sums and `decide` on examples work out of the box. `Set (Finset V)` would need a finiteness side-condition everywhere. Mathlib's `Hypergraph α` (`Set (Set α)`, v4.34.1) has neither finiteness nor independence, see §3.1. |
-| Random subsets as explicit finite weighted sums: $\Pr(X_p\in\mathcal F)=\sum_{A\in\mathcal F,\,A\subseteq X} p^{|A|}(1-p)^{|X\setminus A|}$ | **Decided** (2026-09-29) | Every probability here is a finite sum, and Lemmas 4.2/4.3 become `Finset.sum` manipulations. This deviates from the old instruction "use mathlib's Bernoulli construction". Optionally prove agreement with `Measure.pi`/`PMF` later. Mathlib has no ready-made $p$-random-subset API (§3.1). |
-| Vertex choice = least eligible vertex under `[LinearOrder V]`, decidability via `Classical` | **Decided** (2026-09-29) | The eligibility test compares **real numbers**, so it is not computable. *Deterministic* (a function of $(H_i,S_i)$) is what matters, not *computable*. Mark defs `noncomputable` where needed. |
-| `run` via `Nat.iterate step (Fintype.card V)` | **Decided** (2026-09-29) | Termination becomes the lemma "the state is stopped after $\lvert V\rvert$ steps" and not a recursion obligation. |
-| Prop 2.2 as a hypothesis, never `axiom` | **Decided** | Keeps `#print axioms` clean. |
-| Theorem B(3) proved with $\ge$ | **Decided** (2026-09-29) | The paper states $\ge$ (§2, §8). |
+| Hypergraph = `Finset (Finset V)` over `[Fintype V]` | **Decided** | Finite sums and `decide` work directly. Mathlib's `Hypergraph α` is `Set`-based, with no finiteness and no notion of independence. |
+| Random subsets as finite weighted sums, $\Pr(X_p\in\mathcal F)=\sum_{A\in\mathcal F,\,A\subseteq X} p^{|A|}(1-p)^{|X\setminus A|}$ | **Decided** | Every probability in the proof is a finite sum. Mathlib has no $p$-random-subset API. |
+| Vertex choice = least eligible vertex under `[LinearOrder V]`, decided via `Classical` | **Decided** | Eligibility compares real numbers, so it is not computable. What matters is that the choice is a function of $(H_i,S_i)$. |
+| `run` via `Nat.iterate step (Fintype.card V)` | **Decided** | Termination becomes a lemma instead of a recursion obligation. |
+| Proposition 2.2 as a hypothesis, never `axiom` | **Decided** | Keeps `#print axioms` clean and the dependency visible. Later discharged by `prop22`. |
+| Theorem B(c) with $\ge$ | **Decided** | This is what the paper states. A strict inequality fails when $C = S$. |
+| Statements as `Prop`-valued defs in `Statement.lean`, proofs in milestone files | **Decided** | A statement and its proof never share a name, and no `sorry` sits in the contract file. |
 
 ---
 
-## 8. Decision and discrepancy log
+## 8. What changed
 
-Append-only. Each entry: date, what, why, who approved.
+### 8.1 Differences from the paper
 
-* *(review)* Old README said eligibility $v \in V\setminus S_i$; corrected to
-  also require $\{v\}\notin H_i$ (non-termination otherwise). **Pending paper check.**
-* *(review)* Old README stated strict $>$ in Theorem B(3) and Lemma 4.3; false
-  when $C=S$. **Pending paper check.**
-* *(review)* Prop 2.2 statement reconstructed (§5). **Pending paper check.**
-* *(review)* Old README had two inconsistent milestone numberings (§4 vs §11);
-  unified into §6.
-* *2026-09-27* Repo restructured: library renamed `HyprgraphContainers` →
-  `CamposSamotij`; flat milestone files grouped into subfolders (§6 Layout).
-  `Prop22Statement` lives in `Prop22/Statement.lean`, not `Statement.lean`.
-  Approved by: user.
-* *2026-09-27* Mathlib dependency changed from local path `../mathlib4` to
-  git tag `v4.16.0` (commit `a6276f4c`, matches `lean-toolchain`), so CI can
-  build. Approved by: user.
-* *2026-09-27* Mathlib bumped to the latest stable tag `v4.34.1`, and
-  `lean-toolchain` to `leanprover/lean4:v4.34.1`. Added §3.1 (mathlib coverage
-  survey at that version). Approved by: user.
-* *2026-09-27* Paper checks (text of `optimal_cello_paper.pdf`):
-  - §2.1: $\partial_L H := \{E\setminus L : L\subseteq E\in H\}$. This confirms `link`
-    (edges through $v$ **with $v$ removed**).
-  - §1: $\langle G\rangle$ is the up-set generated by $G$, and "$G$ covers $H$" means
-    $H\subseteq\langle G\rangle$. Formalized as `upClosure`, `Covers`.
-  - Theorem B(c) is stated with $\ge$, and it quantifies over $S\in\mathcal S$, not over
-    $I$. The two are equivalent for our choice $\mathcal S = g(\mathcal I(H))$.
-    This resolves the strictness item.
-  - Prop 2.2 as stated in the paper: $C$ finite, $\mathcal I\subseteq 2^C$ decreasing,
-    $p\in(0,1)$, and
-    $\log\Pr(C_p\in\mathcal I)\ge\big(|C|-\mathbb E[|C_p|\mid C_p\in\mathcal I]/p\big)\log(1-p)$.
-    The paper does not say that $\mathcal I$ is nonempty, but the statement needs it.
-    Under nonemptiness it is equivalent to §5's form after taking $\exp$.
-    **`Prop22Statement` wording still needs a human decision (§5).**
-* *2026-09-27* M1/M2 definitions formalized: `Hypergraph`, `IsIndep`, `IsUniform`,
-  `supersets`, `upClosure`, `Covers`, `indepSets`, `link`. Union of hypergraphs is
-  plain `Finset` union (`isIndep_union`). M3 definitions: `weight`, `probOn`,
-  `condProb`, `condExp`. The results still needed are listed in `RandomSubset.lean`.
-* *2026-09-27* M3 done: `RandomSubset.lean` proves bounds, total mass, positivity
-  from `∅`, conditioning on `v ∈ X_p`, the product formula over `A ⊔ B`
-  (`probOn_union_inter`), `E[|X_p| | F] = ∑ P(v ∈ X_p | F)`, and down-set lemmas.
-  No `sorry`. It is built on the finite-sum design, whose §7 row is still **Proposed**.
-* *2026-09-27* `RealAux.lean` stated. The paper (Lemma 4.2, p. 13) argues through
-  "`x ↦ (1-x)^{1/x}` is decreasing on (0,1)", not through §4.4's `-log(1-x)/x`
-  (the two are equivalent). Both are stated: `one_sub_rpow_inv_antitoneOn`,
-  `delta_mul_le_of_pow_le`.
-* *2026-09-29* Paper §4.1 step (2a) checked: eligibility is $v\in V\setminus S_i$,
-  $\{v\}\notin H_i$, $\Pr(v\in V_p\mid V_p\in\mathcal I(H_i))<(1-\delta)p$. This resolves the
-  eligibility item in §4.2. The paper picks "some such vertex". We pick the least one
-  (`nextVertex`, §7 row still **Proposed**).
-* *2026-09-29* M4 formalized in `Algorithm/Defs.lean`: `State`, `condProbIndep`, `Eligible`,
-  `eligibleSet`, `nextVertex`, `update`, `step`, `run` (fuel $|V|$), `container`,
-  `fingerprint`, `containerOf`, termination `run_stopped`. Updates are
-  $H\cup\partial_vH$ / $H\cup\{\{v\}\}$ as plain `Finset` unions (no `addSingleton`).
-* *2026-09-29* `Prop22Statement` written in the paper's log form, universe-polymorphic in
-  the ground type, with `𝓘 ⊆ C.powerset` and the extra hypothesis `𝓘.Nonempty` (this
-  weakens the assumption). The exponentiated form (§5) is proved as `prop22_rpow`.
-  **Awaiting human sign-off before freezing.**
-* *2026-09-29* `Prop22Statement` (with `𝓘.Nonempty`) approved and frozen. §7 rows "finite
-  weighted sums", "least eligible vertex", and "`run` via `Nat.iterate`" marked **Decided**.
-  From now on, every divergence from the paper is recorded in [`divergence.md`](divergence.md)
-  (D1–D7 so far). Approved by: user.
-* *2026-09-29* Hypergraph as `Finset (Finset V)` marked **Decided**. Vertex types use
-  `[Fintype V] [LinearOrder V]` from `Algorithm/` on, with no separate `[DecidableEq V]`, which
-  removes the instance diamond. Lower files keep `[DecidableEq V]` alone. Approved by: user.
-* *2026-09-29* Theorem B stated as `TheoremBStatement : Prop` in `Statement.lean`,
-  following the paper's p. 3 wording (quantifying over $S\in\mathcal S$). Frozen statements are now
-  `Prop`-valued defs, and each proof lives in its milestone file (`theoremB : Prop22Statement →
-  TheoremBStatement` in `TheoremB.lean`), so no `sorry` stays behind in `Statement.lean`.
-  Divergences D8, D9 logged, and D7 resolved. **Awaiting human review before freezing.**
-* *2026-09-29* `TheoremBStatement` reviewed against the paper and **frozen** (DoD item 4).
-  D8 approved. §7 row "Theorem B(3) with $\ge$" marked **Decided**. Approved by: user.
-* *2026-09-29* M1/M2 done: `IsIndep.mono` (heredity), `IsIndep.anti`, `isIndep_empty_iff`,
-  (Link) `isIndep_union_link`, and (Single) `isIndep_union_singleton`. M5 done: `lemma41` over the
-  new `stage p δ H I i` (`Algorithm/Defs.lean`), with the invariant bundled as `Invariant`
-  (the paper's items plus `H ⊆ Hᵢ`), and the consequences `fingerprint_subset` and
-  `subset_containerOf` ($S\subseteq I\subseteq C$). No `sorry`. The Lemma 4.1 statement is
-  not in `Statement.lean` (only the Theorem B and Prop 2.2 contracts are).
-* *2026-09-29* M8 done: `TheoremB.lean` proves the replay lemma `stage_fingerprint`
-  (runs on $I$ and on $S=g(I)$ agree up to stage $|V|$), `containerOf_fingerprint`
-  ($f(g(I)) = C(I)$), and `theoremB` with $g$ = `fingerprint`, $f$ = `containerOf`,
-  $\mathcal S = g(\mathcal I(H))$ (divergence D11). `lake build` has no `sorry` anywhere, and
-  `#print axioms CamposSamotij.theoremB` shows only `propext`, `Classical.choice`, `Quot.sound`.
-  Version 1 Definition of Done met.
-* *2026-09-29* M9 done: `Prop22/Proof/Induction.lean` proves `prop22 : Prop22Statement` by
-  induction on $|C|$, through the unnormalized form
-  $\log(1-p)\,(|X|P - M/p) \le P\log P$ with $M=\sum_{A\in\mathcal I} P(X_p=A)|A|$. This form
-  also holds for empty families, so the induction needs no nonemptiness. The step is the
-  one-variable `two_point` inequality (concavity and monotonicity of $\log$). This is the paper's
-  first proof, done coordinate by coordinate (D12). `theoremB_unconditional := theoremB prop22`.
-  No `sorry`, and axioms are `propext`, `Classical.choice`, `Quot.sound`.
-* *(review)* Old README's math was corrupted by a LaTeX→Markdown conversion
-  (`` `\mathcal `{=tex} `` artifacts); rewritten in `$…$`.
+Every deliberate difference is recorded in detail in [`divergence.md`](divergence.md). None of
+them weakens Theorem B.
+
+| # | Where | Change | Effect |
+|---|---|---|---|
+| D1 | Prop 2.2 | extra hypothesis `𝓘.Nonempty` (the paper leaves it implicit; `log 0` otherwise) | a weaker assumed statement; now proved anyway |
+| D2 | Prop 2.2 | ground set is a `Finset` inside a type | representation only |
+| D3 | algorithm | $v_i$ = *least* eligible vertex instead of "some" eligible vertex | none: Theorem B is existential |
+| D4 | algorithm | loop = $|V|$ iterations of a step that is the identity once stopped | none |
+| D5 | probability | $\Pr$, $\mathbb E$ as finite sums, not measures | none where the paper's expressions are defined |
+| D6 | hypergraphs | `Finset (Finset V)`, with the vertex set the whole type | representation only |
+| D7 | Theorem B | (b), (c) quantify over $S\in\mathcal S$, as in the paper (an earlier README draft used the per-$I$ form) | resolved in favour of the paper |
+| D8 | Theorem B | `g`, `f` are total functions `Finset V → Finset V` | none: restrict or extend |
+| D9 | Theorem B | the exponent is `Real.rpow` | representation only |
+| D10 | Lemma 4.1 | extra conjunct $H\subseteq H_i$; holds at all stages | a strengthening |
+| D11 | Theorem B | $f$ is defined by rerunning the algorithm on $S$ | the paper's argument made explicit |
+| D12 | Prop 2.2 | proof by induction on $|C|$ instead of via KL divergence | none on statements |
+
+### 8.2 Corrections to earlier drafts of this README
+
+The first version of the roadmap was reconstructed from memory and then checked against the
+paper. These points were corrected:
+
+- **Eligibility.** The paper requires both $v\notin S_i$ and $\{v\}\notin H_i$ (§4.1, step 2a).
+  An early draft omitted $\{v\}\notin H_i$, and with that rule the algorithm never terminates.
+- **Strictness.** An early draft had $>$ in Theorem B(c) and Lemma 4.3. The paper has $\ge$, and
+  $>$ is false when $C=S$.
+- **Proposition 2.2.** Its statement was reconstructed and then replaced by the paper's log
+  form (with D1).
+- **Link.** The definition was confirmed against the paper's
+  $\partial_L H = \{E\setminus L : L\subseteq E\in H\}$ (§2.1).
+- **Lemma 4.2.** The paper argues via $x\mapsto(1-x)^{1/x}$, not $-\log(1-x)/x$. The two are
+  equivalent, and the Lean proof follows the paper.
+- **Housekeeping.** The math had been corrupted by a LaTeX→Markdown conversion and was
+  rewritten. Two inconsistent milestone numberings were unified.
+
+### 8.3 History (decision log)
+
+Append-only. Each entry gives the date, what happened, and who approved it where relevant.
+
+- *2026-09-27*
+  - Repository restructured into subfolders, and the library renamed to `CamposSamotij`.
+  - Mathlib pinned to `v4.34.1` (first `v4.16.0`, then bumped). Approved by the owner.
+  - The paper was checked for the link, up-closure, Theorem B(c) and Proposition 2.2.
+  - M1–M3 definitions written, and M3 (`RandomSubset.lean`) completed.
+- *2026-09-29*
+  - Eligibility checked against the paper.
+  - M4 (algorithm and termination) done.
+  - `Prop22Statement` written with `𝓘.Nonempty`, then approved and frozen.
+  - The §7 design rows were marked Decided, and `divergence.md` was introduced at the owner's
+    request.
+- *2026-09-29*
+  - `TheoremBStatement` written in `Statement.lean`, reviewed by the owner against the paper,
+    and frozen.
+  - M1, M2 and M5 (Lemma 4.1) done.
+- *2026-09-29*
+  - M6 (Lemma 4.2) and M7 (Lemma 4.3, including the coupling identity) done.
+- *2026-09-29*
+  - M8 done: replay lemma and `theoremB`. Definition of done items 1–4 met.
+- *2026-09-29*
+  - M9 done: `prop22` by induction on $|C|$, and `theoremB_unconditional := theoremB prop22`.
+  - Axioms: `propext`, `Classical.choice`, `Quot.sound`.
+  - This README rewritten to describe the finished formalization.
 
 ---
 
 ## 9. Current status
 
 ```text
-Theorem B (conditional on Prop 2.2)      [DONE] (`theoremB` proved; axioms: propext, Classical.choice, Quot.sound)
- ├─ M1 Hypergraph                        [DONE]
- ├─ M2 Updates (Link)/(Single)           [DONE]
- ├─ M3 Random subsets                    [DONE]
- ├─ M4 Algorithm                         [DONE]
- ├─ M5 Lemma 4.1                         [DONE]
- ├─ M6 Lemma 4.2                         [DONE]
- ├─ M7 Lemma 4.3                         [DONE]
- ├─ M8 Assembly                          [DONE]
- ├─ M9 Proposition 2.2                   [DONE] (`prop22`; `Prop22Statement` FROZEN)
- └─ Theorem B, unconditional             [DONE] (`theoremB_unconditional`; axioms: propext, Classical.choice, Quot.sound)
+Theorem B, unconditional                 [DONE] theoremB_unconditional
+ ├─ Theorem B given Prop 2.2             [DONE] theoremB   (statement FROZEN)
+ │   ├─ M1 Hypergraph                    [DONE]
+ │   ├─ M2 Updates (Link)/(Single)       [DONE]
+ │   ├─ M3 Random subsets                [DONE]
+ │   ├─ M4 Algorithm                     [DONE]
+ │   ├─ M5 Lemma 4.1                     [DONE]
+ │   ├─ M6 Lemma 4.2                     [DONE]
+ │   ├─ M7 Lemma 4.3                     [DONE]
+ │   └─ M8 Assembly                      [DONE]
+ └─ M9 Proposition 2.2                   [DONE] prop22     (statement FROZEN)
+
+sorry: 0    axiom: 0    #print axioms: propext, Classical.choice, Quot.sound
 ```
 
-Status values: `NOT STARTED` / `STATED` (in `Statement.lean`, `sorry` proof) /
-`IN PROGRESS` / `DONE` (zero `sorry`, builds).
+Possible next steps, none started:
+
+- the asymptotic corollaries of Theorem B;
+- a bridge from `probOn` to mathlib's `Measure.pi` / `PMF`;
+- a bridge to mathlib's `Hypergraph`;
+- upstreaming general lemmas (the finite-sum random-subset API, Proposition 2.2).
 
 ---
 
-## 10. Source
+## 10. How this was produced, and what to trust
 
-Marcelo Campos and Wojciech Samotij, *Towards an Optimal Hypergraph
-Container Lemma*, International Mathematics Research Notices, 2022.
-Relevant: Section 4 (algorithm, Lemmas 4.1–4.3, proof of Theorem B);
-Proposition 2.2 and Appendix A (three proofs of Proposition 2.2).
-The paper is authoritative for statements and proof structure.
+- **Who wrote what.** Claude (Anthropic) wrote all of the Lean code and documentation, in
+  Claude Code sessions guided by [`CLAUDE.md`](CLAUDE.md). The owner set the goal and the
+  working rules, made the design decisions in §7, and approved every frozen statement and every
+  divergence (§8).
+- **Working rules for the AI.** No `axiom`s. Frozen statements are never edited to make a proof
+  go through. The paper takes precedence over this README. Every divergence is logged. Any
+  uncertainty is flagged in writing.
+- **What the checker guarantees.** Lean's kernel checks every proof, so the proofs need no
+  trust in the author, human or AI.
+- **What must still be reviewed by hand.** The correspondence between the Lean *statements* and
+  the paper is not machine-checked. Read `TheoremBStatement` (`Statement.lean`) and
+  `Prop22Statement` (`Prop22/Statement.lean`), together with the definitions they use
+  (`IsIndep`, `probOn`, `condExp`). They are short and were reviewed by the owner.
+
+---
+
+## 11. Source
+
+Marcelo Campos and Wojciech Samotij, *Towards an Optimal Hypergraph Container Lemma*,
+International Mathematics Research Notices, 2022. The relevant parts are Section 4 (the
+algorithm, Lemmas 4.1–4.3, and the proof of Theorem B) and Proposition 2.2 with Appendix A
+(three proofs of Proposition 2.2).
