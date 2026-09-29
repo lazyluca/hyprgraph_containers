@@ -112,3 +112,14 @@ Status values:
   proof at the start of Lemma 4.3.
 - **Effect:** a strengthening. Nothing is assumed beyond the paper.
 - **Status:** Representation.
+
+## D11. Theorem B: $f$ defined by rerunning the algorithm on $S$
+
+- **Paper (§4.2):** $H_i$ depends only on $S_i$, so the container $C$ is a function of the
+  fingerprint $S$, and this defines $f$.
+- **Lean (`TheoremB.lean`):** `g := fingerprint p δ H`, `f := containerOf p δ H` (the algorithm run
+  with input $S$), and `𝒮 := g(𝓘(H))`. The replay lemma `stage_fingerprint` shows that the runs
+  on $I$ and on $S = g(I)$ agree up to stage $|V|$, hence `f (g I) = containerOf p δ H I`.
+- **Why:** gives $f$ as an explicit function, with no choice or quotient (README §4.6).
+- **Effect:** none. This is the paper's argument made explicit.
+- **Status:** Representation.

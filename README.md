@@ -424,6 +424,12 @@ Append-only. Each entry: date, what, why, who approved.
   (the paper's items plus `H ⊆ Hᵢ`), and the consequences `fingerprint_subset` and
   `subset_containerOf` ($S\subseteq I\subseteq C$). No `sorry`. The Lemma 4.1 statement is
   not in `Statement.lean` (only the Theorem B and Prop 2.2 contracts are).
+* *2026-09-29* M8 done: `TheoremB.lean` proves the replay lemma `stage_fingerprint`
+  (runs on $I$ and on $S=g(I)$ agree up to stage $|V|$), `containerOf_fingerprint`
+  ($f(g(I)) = C(I)$), and `theoremB` with $g$ = `fingerprint`, $f$ = `containerOf`,
+  $\mathcal S = g(\mathcal I(H))$ (divergence D11). `lake build` has no `sorry` anywhere, and
+  `#print axioms CamposSamotij.theoremB` shows only `propext`, `Classical.choice`, `Quot.sound`.
+  Version 1 Definition of Done met.
 * *(review)* Old README's math was corrupted by a LaTeX→Markdown conversion
   (`` `\mathcal `{=tex} `` artifacts); rewritten in `$…$`.
 
@@ -432,16 +438,16 @@ Append-only. Each entry: date, what, why, who approved.
 ## 9. Current status
 
 ```text
-Theorem B (conditional on Prop 2.2)      [STATED, FROZEN] (`TheoremBStatement` approved; `theoremB` 1 sorry)
+Theorem B (conditional on Prop 2.2)      [DONE] (`theoremB` proved; axioms: propext, Classical.choice, Quot.sound)
  ├─ M1 Hypergraph                        [DONE]
  ├─ M2 Updates (Link)/(Single)           [DONE]
  ├─ M3 Random subsets                    [DONE]
  ├─ M4 Algorithm                         [DONE]
  ├─ M5 Lemma 4.1                         [DONE]
- ├─ M6 Lemma 4.2                         [IN PROGRESS] (RealAux STATED, 2 sorry)
- ├─ M7 Lemma 4.3                         [NOT STARTED]
- ├─ M8 Assembly                          [NOT STARTED]
- └─ Proposition 2.2                      [HYPOTHESIS; `Prop22Statement` FROZEN]
+ ├─ M6 Lemma 4.2                         [DONE]
+ ├─ M7 Lemma 4.3                         [DONE]
+ ├─ M8 Assembly                          [DONE]
+ └─ Proposition 2.2                      [HYPOTHESIS; `Prop22Statement` FROZEN] (M9 not started)
 ```
 
 Status values: `NOT STARTED` / `STATED` (in `Statement.lean`, `sorry` proof) /
