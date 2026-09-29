@@ -29,6 +29,9 @@ elegant generality, mathlib PRs, or proving Prop 2.2, is secondary until then.
    write a name from memory, I compile it before relying on it.
 6. **Paper over README.** If the README's math and the paper disagree, the
    paper wins. Log the discrepancy in README §8.
+7. **Record every divergence from the paper in [`divergence.md`](divergence.md)**
+   (paper / Lean / why / effect / status). This covers extra hypotheses, representation
+   choices, and choice rules. Required by the human (2026-09-29).
 
 ## 3. Uncertainty protocol (required)
 

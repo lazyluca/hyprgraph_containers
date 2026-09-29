@@ -135,7 +135,7 @@ v \notin S_i,\qquad \{v\} \notin H_i,\qquad
 \Pr\big(v \in V_p \mid V_p \in \mathcal I(H_i)\big) < (1-\delta)p .
 $$
 
-**⚠ VERIFY (correction).** The previous README only required
+**Checked against the paper (2026-09-29): step (2a) requires both $v\notin S_i$ and $\{v\}\notin H_i$.** Original note: The previous README only required
 $v \in V \setminus S_i$. With that rule the algorithm does **not** terminate:
 once $\{v\}$ is an edge, $\Pr(v \in V_p \mid V_p\in\mathcal I(H_i)) = 0 < (1-\delta)p$,
 so $v$ stays eligible forever. The condition $\{v\}\notin H_i$ (equivalently
@@ -249,7 +249,7 @@ Proposition 2.2 enters **only** as a hypothesis
 `#print axioms` stays clean and the dependency stays visible in every
 signature.
 
-**⚠ VERIFY: the statement below is a reconstruction, not a quote.** The
+**Frozen (2026-09-29).** The Lean statement is `Prop22Statement` in `Prop22/Statement.lean`: the paper's log form plus `𝓘.Nonempty` (see [`divergence.md`](divergence.md) D1). Original note: The
 previous README never stated Proposition 2.2. The form needed by §4.5 is:
 
 > Let $W$ be finite, $0<p<1$, and $\mathcal F \subseteq \mathcal P(W)$ a
@@ -337,9 +337,9 @@ M3 RandomSubset ───────────────┘                
 | Decision | Status | Rationale |
 |---|---|---|
 | Hypergraph = `Finset (Finset V)` over `[Fintype V]` | **Proposed** | Finite sums and `decide` on examples work out of the box. `Set (Finset V)` would need a finiteness side-condition everywhere. Mathlib's `Hypergraph α` (`Set (Set α)`, v4.34.1) has neither finiteness nor independence, see §3.1. |
-| Random subsets as explicit finite weighted sums: $\Pr(X_p\in\mathcal F)=\sum_{A\in\mathcal F,\,A\subseteq X} p^{|A|}(1-p)^{|X\setminus A|}$ | **Proposed ⚠** | Every probability here is a finite sum, and Lemmas 4.2/4.3 become `Finset.sum` manipulations. This deviates from the old instruction "use mathlib's Bernoulli construction". Optionally prove agreement with `Measure.pi`/`PMF` later. Mathlib has no ready-made $p$-random-subset API (§3.1). Needs sign-off. |
-| Vertex choice = least eligible vertex under `[LinearOrder V]`, decidability via `Classical` | **Proposed** | The eligibility test compares **real numbers**, so it is not computable. *Deterministic* (a function of $(H_i,S_i)$) is what matters, not *computable*. Mark defs `noncomputable` where needed. |
-| `run` via `Nat.iterate step (Fintype.card V)` | **Proposed** | Termination becomes the lemma "the state is stopped after $\lvert V\rvert$ steps" and not a recursion obligation. |
+| Random subsets as explicit finite weighted sums: $\Pr(X_p\in\mathcal F)=\sum_{A\in\mathcal F,\,A\subseteq X} p^{|A|}(1-p)^{|X\setminus A|}$ | **Decided** (2026-09-29) | Every probability here is a finite sum, and Lemmas 4.2/4.3 become `Finset.sum` manipulations. This deviates from the old instruction "use mathlib's Bernoulli construction". Optionally prove agreement with `Measure.pi`/`PMF` later. Mathlib has no ready-made $p$-random-subset API (§3.1). |
+| Vertex choice = least eligible vertex under `[LinearOrder V]`, decidability via `Classical` | **Decided** (2026-09-29) | The eligibility test compares **real numbers**, so it is not computable. *Deterministic* (a function of $(H_i,S_i)$) is what matters, not *computable*. Mark defs `noncomputable` where needed. |
+| `run` via `Nat.iterate step (Fintype.card V)` | **Decided** (2026-09-29) | Termination becomes the lemma "the state is stopped after $\lvert V\rvert$ steps" and not a recursion obligation. |
 | Prop 2.2 as a hypothesis, never `axiom` | **Decided** | Keeps `#print axioms` clean. |
 | Theorem B(3) proved with $\ge$ | **Proposed ⚠** | See §2. |
 
@@ -392,6 +392,22 @@ Append-only. Each entry: date, what, why, who approved.
   "`x ↦ (1-x)^{1/x}` is decreasing on (0,1)", not through §4.4's `-log(1-x)/x`
   (the two are equivalent). Both are stated: `one_sub_rpow_inv_antitoneOn`,
   `delta_mul_le_of_pow_le`.
+* *2026-09-29* Paper §4.1 step (2a) checked: eligibility is $v\in V\setminus S_i$,
+  $\{v\}\notin H_i$, $\Pr(v\in V_p\mid V_p\in\mathcal I(H_i))<(1-\delta)p$. This resolves the
+  eligibility item in §4.2. The paper picks "some such vertex". We pick the least one
+  (`nextVertex`, §7 row still **Proposed**).
+* *2026-09-29* M4 formalized in `Algorithm/Defs.lean`: `State`, `condProbIndep`, `Eligible`,
+  `eligibleSet`, `nextVertex`, `update`, `step`, `run` (fuel $|V|$), `container`,
+  `fingerprint`, `containerOf`, termination `run_stopped`. Updates are
+  $H\cup\partial_vH$ / $H\cup\{\{v\}\}$ as plain `Finset` unions (no `addSingleton`).
+* *2026-09-29* `Prop22Statement` written in the paper's log form, universe-polymorphic in
+  the ground type, with `𝓘 ⊆ C.powerset` and the extra hypothesis `𝓘.Nonempty` (this
+  weakens the assumption). The exponentiated form (§5) is proved as `prop22_rpow`.
+  **Awaiting human sign-off before freezing.**
+* *2026-09-29* `Prop22Statement` (with `𝓘.Nonempty`) approved and frozen. §7 rows "finite
+  weighted sums", "least eligible vertex", and "`run` via `Nat.iterate`" marked **Decided**.
+  From now on, every divergence from the paper is recorded in [`divergence.md`](divergence.md)
+  (D1–D7 so far). Approved by: user.
 * *(review)* Old README's math was corrupted by a LaTeX→Markdown conversion
   (`` `\mathcal `{=tex} `` artifacts); rewritten in `$…$`.
 
@@ -404,12 +420,12 @@ Theorem B (conditional on Prop 2.2)      [NOT STARTED]
  ├─ M1 Hypergraph                        [IN PROGRESS]
  ├─ M2 Updates (Link)/(Single)           [IN PROGRESS]
  ├─ M3 Random subsets                    [DONE]
- ├─ M4 Algorithm                         [NOT STARTED]
+ ├─ M4 Algorithm                         [DONE]
  ├─ M5 Lemma 4.1                         [NOT STARTED]
  ├─ M6 Lemma 4.2                         [IN PROGRESS] (RealAux STATED, 2 sorry)
  ├─ M7 Lemma 4.3                         [NOT STARTED]
  ├─ M8 Assembly                          [NOT STARTED]
- └─ Proposition 2.2                      [HYPOTHESIS; statement ⚠ VERIFY]
+ └─ Proposition 2.2                      [HYPOTHESIS; `Prop22Statement` FROZEN]
 ```
 
 Status values: `NOT STARTED` / `STATED` (in `Statement.lean`, `sorry` proof) /
