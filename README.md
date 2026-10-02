@@ -4,7 +4,9 @@ A complete, machine-checked formalization of **Theorem B** (the "hard-core" hype
 container lemma) of
 
 > M. Campos and W. Samotij, *Towards an Optimal Hypergraph Container Lemma*,
-> International Mathematics Research Notices, 2022.
+> Combinatorica **46** (2026), no. 3, Article 24
+> ([doi:10.1007/s00493-026-00214-1](https://doi.org/10.1007/s00493-026-00214-1)); page numbers follow
+> [arXiv:2408.06617v2](https://arxiv.org/abs/2408.06617).
 
 The formalization covers Section 4 of the paper (the algorithm and Lemmas 4.1–4.3) and
 **Proposition 2.2**, so Theorem B is proved outright, with no hypotheses:
@@ -214,7 +216,7 @@ Lemma 4.1, (b) from Lemma 4.2, and (c) from Lemma 4.3.
 
 ### 4.7 Proposition 2.2 (`Prop22/Proof/Induction.lean`)
 
-**Paper (p. 5).** For finite $C$, a decreasing family $\mathcal I\subseteq 2^C$ and $p\in(0,1)$,
+**Paper (p. 7).** For finite $C$, a decreasing family $\mathcal I\subseteq 2^C$ and $p\in(0,1)$,
 
 $$
 \log\Pr(C_p\in\mathcal I)\ \ge\ \big(|C| - \mathbb E[|C_p|\mid C_p\in\mathcal I]/p\big)\log(1-p).
@@ -434,6 +436,7 @@ Possible next steps, none started:
 ## 11. Source
 
 Marcelo Campos and Wojciech Samotij, *Towards an Optimal Hypergraph Container Lemma*,
-International Mathematics Research Notices, 2022. The relevant parts are Section 4 (the
+Combinatorica **46** (2026), no. 3, Article 24, [doi:10.1007/s00493-026-00214-1](https://doi.org/10.1007/s00493-026-00214-1)
+(preprint arXiv:2408.06617v2, linked in [`paper/`](paper/README.md)). The relevant parts are Section 4 (the
 algorithm, Lemmas 4.1–4.3, and the proof of Theorem B) and Proposition 2.2 with Appendix A
 (three proofs of Proposition 2.2).

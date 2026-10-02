@@ -1,7 +1,7 @@
 # Divergences from the paper
 
 Every place where the Lean formalization differs from Campos–Samotij,
-*Towards an Optimal Hypergraph Container Lemma* (IMRN 2022). The paper is
+*Towards an Optimal Hypergraph Container Lemma* (Combinatorica 46 (2026), Art. 24; page numbers follow arXiv:2408.06617v2). The paper is
 authoritative (CLAUDE.md rule 6). An entry here records a deliberate,
 approved difference. It is not a license to change a statement.
 
@@ -17,7 +17,7 @@ Status values:
 
 ## D1. Proposition 2.2: nonempty family
 
-- **Paper (p. 5):** $C$ finite, $\mathcal I\subseteq 2^C$ decreasing, $p\in(0,1)$ ⟹
+- **Paper (p. 7):** $C$ finite, $\mathcal I\subseteq 2^C$ decreasing, $p\in(0,1)$ ⟹
   $\log\Pr(C_p\in\mathcal I)\ge\big(|C|-\mathbb E[|C_p|\mid C_p\in\mathcal I]/p\big)\log(1-p)$.
 - **Lean (`Prop22Statement`, `Prop22/Statement.lean`):** the same statement with the extra
   hypothesis `𝓘.Nonempty`.

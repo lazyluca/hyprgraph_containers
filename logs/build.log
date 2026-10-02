@@ -1,0 +1,19 @@
+✔ [2060/2074] Built CamposSamotij.Hypergraph.Basic (2.5s)
+✔ [2061/2074] Built CamposSamotij.Probability.RandomSubset (2.7s)
+✔ [2062/2074] Built CamposSamotij.Hypergraph.Updates (1.3s)
+✔ [2063/2074] Built CamposSamotij.Prop22.Statement (3.4s)
+✔ [2064/2074] Built CamposSamotij.Examples (2.7s)
+✔ [2065/2074] Built CamposSamotij.Probability.RealAux (6.3s)
+✔ [2066/2074] Built CamposSamotij.Algorithm.Defs (3.2s)
+✔ [2067/2074] Built CamposSamotij.Section4.Lemma41 (2.2s)
+✔ [2068/2074] Built CamposSamotij.Prop22.Proof.Induction (3.3s)
+✔ [2069/2074] Built CamposSamotij.Statement (2.5s)
+✔ [2070/2074] Built CamposSamotij.Section4.Lemma42 (2.3s)
+✔ [2071/2074] Built CamposSamotij.Section4.Lemma43 (2.6s)
+✔ [2072/2074] Built CamposSamotij.TheoremB (1.7s)
+✔ [2073/2074] Built CamposSamotij (1.4s)
+Build completed successfully (2074 jobs).
+
+real	0m15.880s
+user	0m29.244s
+sys	0m11.717s
