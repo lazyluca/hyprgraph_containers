@@ -101,6 +101,7 @@ Cases that always trigger it:
 | `logs/` | `build.log`, `axioms.log`, `Axioms.lean`, `sorry-check.log`, CI runs | Done; regenerate after Lean changes. Evaluator report: owner |
 | `MOTIVATION.md` | Contribution, why it matters, what is reusable, prior work, what was done during the event, done vs. future | Me for the technical parts. Event facts: owner. Prior work: only after checking sources |
 | `CREDITS.md` | Authors, AI use, compute, commit authorship | Me for AI/tooling facts. Compute and human roles: owner confirms |
+| `SUBMISSION.md` | Summary, IDs, cutoff, evaluator report, access, packet index | Me for the index and access. IDs, cutoff, report, permission: owner |
 | `paper/` | Links to the arXiv v2 PDF and LaTeX source, with citation and licence note | Done (no copies: arXiv licence) |
 
 Known packet issues:
@@ -109,8 +110,7 @@ Known packet issues:
   `optimal_cello_paper.pdf` was removed on 2026-10-02; it remains in git history.
 - Only the last three Lean commits carry the Claude `Co-Authored-By` trailer, although Claude
   wrote all the Lean code. `CREDITS.md` §4 says so.
-- There is no `SUBMISSION.md` (the owner's decision, 2026-10-02). The Sunday 2026-09-27 commits
-  count as event work.
+- The Sunday 2026-09-27 commits count as event work (owner, 2026-10-02).
 - Work after the competition cutoff must be labelled as post-cutoff.
 
 ## 6. When to stop and ask the human

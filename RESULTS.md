@@ -8,10 +8,9 @@ correspondence can be inspected independently. Everything below refers to commit
 Combinatorica **46** (2026), no. 3, Article 24,
 [doi:10.1007/s00493-026-00214-1](https://doi.org/10.1007/s00493-026-00214-1). Result numbers and
 page numbers below follow the preprint arXiv:2408.06617v2 (19 Sep 2024); see
-[`paper/README.md`](paper/README.md) for the PDF and LaTeX source.
-<!-- ⚠ UNSURE: whether the Combinatorica version keeps the arXiv v2 numbering (Theorem B, Lemmas
-     4.1–4.3, Proposition 2.2) and wording. The published version is paywalled, so I could not
-     compare them. Owner: check against the published PDF. -->
+[`paper/README.md`](paper/README.md) for the PDF and LaTeX source. The published version numbers
+the results the same way (checked by the owner, 2026-10-02); only the page numbers are specific to
+arXiv v2.
 
 ## 1. Paper ↔ Lean
 

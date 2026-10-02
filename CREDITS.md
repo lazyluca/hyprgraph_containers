@@ -46,7 +46,8 @@ and `816f7e3`. The earlier commits do not record a model.
 | All Lean code: `CamposSamotij.lean` and `CamposSamotij/**/*.lean` (1695 lines in 14 files) | Claude |
 | [`README.md`](README.md), [`divergence.md`](divergence.md) | Claude; divergence *approvals* by the owner |
 | [`RESULTS.md`](RESULTS.md), this file | Claude and the owner together; Claude drafted from facts in the repository, and the owner contributed to the text |
-| [`REPRODUCE.md`](REPRODUCE.md), [`logs/README.md`](logs/README.md) | Claude, from facts in the repository; owner-only facts are left as TODOs |
+| [`SUBMISSION.md`](SUBMISSION.md) | Claude, at the owner's request; identifiers, cutoff, evaluator report and review permission come from the owner |
+| [`REPRODUCE.md`](REPRODUCE.md), [`logs/README.md`](logs/README.md) | Claude, from facts in the repository |
 | [`logs/`](logs/) outputs | Produced by running `lake`, `lean` and `grep` (commands in `logs/README.md`) |
 | [`MOTIVATION.md`](MOTIVATION.md) | The owner, with assistance from Claude |
 | [`CLAUDE.md`](CLAUDE.md) | The owner, with assistance from ChatGPT (free version) |
