@@ -145,5 +145,6 @@ modelling choices. The full record, with the reasons, is in [`divergence.md`](di
 D2 and D7 are representation notes with no effect. See [`divergence.md`](divergence.md).
 
 **What is not machine-checked:** whether `TheoremBStatement` and `Prop22Statement`, with the
-definitions they use, say what the paper says. Only a human has checked this, by reading them.
+definitions they use, say what the paper says. Only people have checked this, by reading them: the
+owner (both statements), and Matheus and Tiago (`TheoremBStatement`; see [`CREDITS.md`](CREDITS.md) §1).
 That is why §1.2 shows both statements next to the paper's.

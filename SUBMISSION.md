@@ -32,6 +32,11 @@ Every commit up to and including `669d14f` (2026-10-02 16:28 −03:00) is before
 commit made after midnight at the end of 2026-10-02 is post-cutoff and will be labelled as such
 here.
 
+The commit that adds Matheus and Tiago as statement reviewers to [`CREDITS.md`](CREDITS.md) was
+made on 2026-10-02 after 22:00 −03:00, which is after 01:00 UTC on 2026-10-03. It changes credits
+only. It is before the cutoff if the cutoff is midnight in −03:00, and after it if the cutoff is
+midnight UTC.
+
 ## 3. Evaluator report
 
 See [`logs/`](logs/README.md). It has the clean build ([`build.log`](logs/build.log)), the axiom

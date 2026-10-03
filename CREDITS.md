@@ -23,6 +23,10 @@ D12).
   2026-10-02);
 - co-wrote [`RESULTS.md`](RESULTS.md) and this file with Claude.
 
+**Statement reviewers: Matheus and Tiago.** They also checked the formal statement of Theorem B
+(`TheoremBStatement`, [`Statement.lean`](CamposSamotij/Statement.lean)) against the paper (stated
+by the owner, 2026-10-02).
+
 **Claude (Anthropic), the AI model, working in Claude Code.** Wrote the Lean code and most of the
 documentation (§2).
 
@@ -58,7 +62,7 @@ and `816f7e3`. The earlier commits do not record a model.
   `propext`, `Classical.choice` and `Quot.sound` ([`logs/axioms.log`](logs/axioms.log)), so the
   proofs do not depend on trusting the AI.
 - **Statements:** *not* machine-checked. The owner read `TheoremBStatement` and `Prop22Statement`
-  against the paper and approved them. See [`RESULTS.md`](RESULTS.md) §1.2 and §4.
+  against the paper and approved them. Matheus and Tiago also checked `TheoremBStatement`. See [`RESULTS.md`](RESULTS.md) §1.2 and §4.
 - **Mathlib names:** compiled at the pinned version, never taken on trust (`CLAUDE.md` rule 5).
   The build succeeds ([`logs/build.log`](logs/build.log)).
 
